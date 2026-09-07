@@ -1,0 +1,37 @@
+# ---- Secrets & local data (never commit) ----
+.env
+.env.*
+!.env.example
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+Raw Data Feed/**
+!Raw Data Feed/**/
+!Raw Data Feed/**/.gitkeep
+
+# ---- .NET ----
+bin/
+obj/
+*.user
+.vs/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+TestResults/
+*.trx
+*.coverage
+coverage/
+
+# ---- Node (scraper/ and dashboard/) ----
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+yarn-error.log*
+
+# ---- Editor / OS ----
+.idea/
+.DS_Store
+Thumbs.db

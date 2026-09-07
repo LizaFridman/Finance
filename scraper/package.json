@@ -1,0 +1,20 @@
+{
+  "name": "finance-scraper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Thin local wrapper around israeli-bank-scrapers. Runs on the host only; credentials never leave the machine (spec §7.2).",
+  "scripts": {
+    "scrape": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "israeli-bank-scrapers": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
