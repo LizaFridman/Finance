@@ -1,3 +1,4 @@
+using System.Globalization;
 using Finance.Application.Categorization;
 using Finance.Application.Ingestion;
 using Finance.Application.Reporting;
@@ -15,12 +16,7 @@ public static class ApiEndpoints
 {
     public static void MapFinanceApi(this WebApplication app)
     {
-        app.MapGet("/api/health", (SqliteDatabaseInfo info) => Results.Ok(new
-        {
-            status = "ok",
-            database = info.Path,
-            utc = DateTime.UtcNow,
-        }));
+        app.MapGet("/api/health", () => Results.Ok(new { status = "ok", utc = DateTime.UtcNow }));
 
         // --- reference data ------------------------------------------------
         app.MapGet("/api/reference/buckets", (IBucketRepository r) => Results.Ok(r.GetAll()));
@@ -61,10 +57,16 @@ public static class ApiEndpoints
 
         app.MapGet("/api/series/yoy", (HttpRequest req, ITimeSeriesReporting q) =>
         {
-            var years = (req.Query["years"].ToString())
-                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(int.Parse).ToArray();
-            if (years.Length == 0)
+            var tokens = req.Query["years"].ToString()
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var years = new List<int>(tokens.Length);
+            foreach (var token in tokens)
+            {
+                if (!int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out var year))
+                    return Results.BadRequest(new { error = $"'{token}' is not a year; pass ?years=2025,2026" });
+                years.Add(year);
+            }
+            if (years.Count == 0)
                 return Results.BadRequest(new { error = "pass ?years=2025,2026" });
             return Results.Ok(q.YearOverYear(years, req.Filter()));
         });
@@ -130,6 +132,3 @@ public static class ApiEndpoints
 
 public sealed record ConfirmCategoryRequest(string CategoryId, string? CategoryLabel = null);
 public sealed record AssignBucketRequest(string? BucketId);
-
-/// <summary>Tiny wrapper so <c>/api/health</c> can report the resolved database path.</summary>
-public sealed record SqliteDatabaseInfo(string Path);

@@ -68,6 +68,27 @@ public class ApiIntegrationTests : IClassFixture<ApiIntegrationTests.Factory>
         Assert.Equal(520d, march.GetProperty("byYear").GetProperty("2025").GetProperty("expense").GetDouble());
     }
 
+    [Fact]
+    public async Task Confirming_a_category_for_an_unknown_transaction_is_404()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/transactions/no-such-id/category", new { categoryId = "groceries" });
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Year_over_year_with_a_non_numeric_year_is_400()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/api/series/yoy?years=2025,notayear");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     public sealed class Factory : WebApplicationFactory<Program>
     {
         private readonly string _dbPath =

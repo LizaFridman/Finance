@@ -16,21 +16,26 @@ using Finance.Host;
 var builder = WebApplication.CreateBuilder(args);
 
 // --- configuration -------------------------------------------------------------
+builder.Services.AddOptions<FinanceOptions>()
+    .Bind(builder.Configuration.GetSection(FinanceOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+var options = builder.Configuration.GetSection(FinanceOptions.SectionName).Get<FinanceOptions>()
+              ?? new FinanceOptions();
+
 // Relative paths in config are resolved against the content root.
 string ResolvePath(string configured) => Path.IsPathRooted(configured)
     ? configured
     : Path.Combine(builder.Environment.ContentRootPath, configured);
 
-var dbPath = ResolvePath(builder.Configuration["Finance:DatabasePath"] ?? "finance.db");
-var rawFeedPath = ResolvePath(builder.Configuration["Finance:RawDataFeedPath"] ?? "Raw Data Feed");
-
-var dashboardOrigins = builder.Configuration
-    .GetSection("Finance:DashboardOrigins").Get<string[]>() ?? [];
+var dbPath = ResolvePath(options.DatabasePath);
+var rawFeedPath = ResolvePath(options.RawDataFeedPath);
+var dashboardOrigins = options.DashboardOrigins;
 
 // --- services ----------------------------------------------------------------
 // Repositories open a short-lived connection per call, so singletons are fine.
 builder.Services.AddSingleton(SqliteDatabase.ForFile(dbPath));
-builder.Services.AddSingleton(new SqliteDatabaseInfo(dbPath));
 
 builder.Services.AddSingleton<ConfigStore>();
 builder.Services.AddSingleton<IReportingConfig>(sp => sp.GetRequiredService<ConfigStore>());
@@ -72,9 +77,14 @@ builder.Services.AddCors(options => options.AddPolicy("dashboard", policy =>
         policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
 }));
 
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<DomainExceptionHandler>();
+
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 // Create/upgrade the schema on start-up; idempotent (spec §4.3).
 app.Services.GetRequiredService<SqliteDatabase>().Bootstrap();
