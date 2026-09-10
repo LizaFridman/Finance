@@ -1,3 +1,4 @@
+using System.Globalization;
 using Finance.Core.Persistence;
 
 namespace Finance.Data.Repositories;
@@ -22,7 +23,7 @@ public sealed class TransactionRepository : ITransactionRepository
             """;
         cmd.Parameters.AddWithValue("$id", transaction.Id);
         cmd.Parameters.AddWithValue("$source", transaction.SourceId);
-        cmd.Parameters.AddWithValue("$date", transaction.Date.ToString("yyyy-MM-dd"));
+        cmd.Parameters.AddWithValue("$date", transaction.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         cmd.Parameters.AddWithValue("$amount", transaction.AmountAgorot);
         cmd.Parameters.AddWithValue("$merchant", transaction.MerchantRaw);
         return cmd.ExecuteNonQuery() == 1;
@@ -86,8 +87,8 @@ public sealed class TransactionRepository : ITransactionRepository
 
         if (status is not null) { sql.Append(" AND status = $status"); cmd.Parameters.AddWithValue("$status", status); }
         if (bucketId is not null) { sql.Append(" AND bucket_id = $bucket"); cmd.Parameters.AddWithValue("$bucket", bucketId); }
-        if (from is { } f) { sql.Append(" AND date >= $from"); cmd.Parameters.AddWithValue("$from", f.ToString("yyyy-MM-dd")); }
-        if (to is { } tt) { sql.Append(" AND date <= $to"); cmd.Parameters.AddWithValue("$to", tt.ToString("yyyy-MM-dd")); }
+        if (from is { } f) { sql.Append(" AND date >= $from"); cmd.Parameters.AddWithValue("$from", f.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)); }
+        if (to is { } tt) { sql.Append(" AND date <= $to"); cmd.Parameters.AddWithValue("$to", tt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)); }
         if (categoryIsNull) sql.Append(" AND category_id IS NULL");
         if (bucketIsNull) sql.Append(" AND bucket_id IS NULL");
 
@@ -126,7 +127,7 @@ public sealed class TransactionRepository : ITransactionRepository
     private static TransactionDetail Read(Microsoft.Data.Sqlite.SqliteDataReader r) => new(
         Id: r.GetString(0),
         SourceId: r.GetString(1),
-        Date: DateOnly.ParseExact(r.GetString(2), "yyyy-MM-dd"),
+        Date: DateOnly.ParseExact(r.GetString(2), "yyyy-MM-dd", CultureInfo.InvariantCulture),
         AmountAgorot: r.GetInt64(3),
         MerchantRaw: r.GetString(4),
         CategoryId: r.IsDBNull(5) ? null : r.GetString(5),

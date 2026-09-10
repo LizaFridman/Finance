@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -21,8 +22,8 @@ public static class IdempotencyKey
         var basis = string.Join(
             '|',
             record.SourceId,
-            record.Date.ToString("yyyy-MM-dd"),
-            record.AmountAgorot.ToString(),
+            record.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            record.AmountAgorot.ToString(CultureInfo.InvariantCulture),
             record.MerchantRaw.Trim());
 
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(basis));

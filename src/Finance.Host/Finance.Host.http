@@ -1,6 +1,28 @@
-@Finance.Host_HostAddress = http://localhost:5292
+@host = http://localhost:5179
 
-GET {{Finance.Host_HostAddress}}/weatherforecast/
+### Health check
+GET {{host}}/api/health
 Accept: application/json
 
-###
+### Monthly income / expense / net trend (defaults to the last 12 months)
+GET {{host}}/api/series/trend
+Accept: application/json
+
+### Cumulative balance within the reporting year
+GET {{host}}/api/series/cumulative?grain=month
+Accept: application/json
+
+### Year-over-year comparison
+GET {{host}}/api/series/yoy?years=2025,2026
+Accept: application/json
+
+### Reference data
+GET {{host}}/api/reference/buckets
+Accept: application/json
+
+### Transactions still needing a bucket
+GET {{host}}/api/transactions?unbucketed=true
+Accept: application/json
+
+### Trigger ingestion of the Raw Data Feed folders
+POST {{host}}/api/ingest

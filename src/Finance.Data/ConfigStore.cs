@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Finance.Data;
 
 /// <summary>
@@ -44,7 +46,9 @@ public sealed class ConfigStore
     public int GetYearStartMonth()
     {
         var raw = Get(YearStartMonthKey);
-        return raw is not null && int.TryParse(raw, out var month) ? month : 1;
+        return raw is not null
+            && int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var month)
+            ? month : 1;
     }
 
     public void SetYearStartMonth(int month)
@@ -52,6 +56,6 @@ public sealed class ConfigStore
         if (month is < 1 or > 12)
             throw new ArgumentOutOfRangeException(
                 nameof(month), month, "Year start month must be between 1 and 12.");
-        Set(YearStartMonthKey, month.ToString());
+        Set(YearStartMonthKey, month.ToString(CultureInfo.InvariantCulture));
     }
 }

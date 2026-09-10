@@ -59,11 +59,11 @@ public class DotEnvCredentialStoreTests : IDisposable
 
 public class CredentialStoreFactoryTests
 {
-    [Fact]
+    [SkippableFact]
     public void Auto_picks_the_Windows_store_on_Windows()
     {
-        if (!OperatingSystem.IsWindows())
-            return; // the Linux/Pi host would get DotEnv instead — asserted where it runs
+        Skip.IfNot(OperatingSystem.IsWindows(),
+            "Windows-only: the Linux/Pi host gets DotEnv instead — asserted where it runs.");
 
         Assert.IsType<WindowsCredentialStore>(CredentialStoreFactory.Create());
     }
@@ -78,11 +78,11 @@ public class CredentialStoreFactoryTests
 
 public class WindowsCredentialStoreTests
 {
-    [Fact]
+    [SkippableFact]
     public void Round_trips_through_Windows_Credential_Manager()
     {
-        if (!OperatingSystem.IsWindows())
-            return;
+        Skip.IfNot(OperatingSystem.IsWindows(),
+            "Windows-only: exercises the real Windows Credential Manager.");
 
         // Unique prefix + guaranteed cleanup so the dev machine's credential
         // store is left exactly as it was found.

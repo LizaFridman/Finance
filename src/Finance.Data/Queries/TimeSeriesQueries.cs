@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Finance.Core.Reporting;
 
@@ -162,8 +163,8 @@ public sealed class TimeSeriesQueries
         var sql = new StringBuilder(
             "SELECT date, amount, bucket_id, category_id FROM transactions " +
             "WHERE date >= $from AND date <= $to");
-        cmd.Parameters.AddWithValue("$from", from.ToString("yyyy-MM-dd"));
-        cmd.Parameters.AddWithValue("$to", to.ToString("yyyy-MM-dd"));
+        cmd.Parameters.AddWithValue("$from", from.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+        cmd.Parameters.AddWithValue("$to", to.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
 
         if (filter.SourceId is { } source)
         {
