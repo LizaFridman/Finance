@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Finance.Domain;
 using Finance.Domain.Reporting;
 
 namespace Finance.Infrastructure.Reporting;
@@ -58,7 +59,7 @@ public sealed class TransactionRowReader : ITransactionRowReader
         {
             rows.Add(new TransactionRow(
                 DateOnly.ParseExact(reader.GetString(0), "yyyy-MM-dd", CultureInfo.InvariantCulture),
-                reader.GetInt64(1),
+                new Money(reader.GetInt64(1)),
                 reader.IsDBNull(2) ? null : reader.GetString(2),
                 reader.IsDBNull(3) ? null : reader.GetString(3)));
         }

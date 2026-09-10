@@ -26,7 +26,7 @@ public static class TestData
         cmd.Parameters.AddWithValue("$id", id);
         cmd.Parameters.AddWithValue("$src", source);
         cmd.Parameters.AddWithValue("$date", date);
-        cmd.Parameters.AddWithValue("$amount", Money.ToAgorot(shekels));
+        cmd.Parameters.AddWithValue("$amount", Money.FromShekels(shekels).Agorot);
         cmd.Parameters.AddWithValue("$m", $"merchant-{id}");
         cmd.Parameters.AddWithValue("$bucket", (object?)bucket ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$cat", (object?)category ?? DBNull.Value);

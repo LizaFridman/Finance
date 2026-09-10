@@ -1,6 +1,19 @@
 namespace Finance.Domain.Ingestion;
 
 /// <summary>
+/// What a parser got out of one file: the records it could read, plus a line per
+/// row it could not (bad date, missing merchant, …). A single malformed row does
+/// not fail the whole file — the errors travel back in the ingestion result.
+/// </summary>
+public sealed record RawFeedParseResult(
+    IReadOnlyList<TransactionRecord> Records,
+    IReadOnlyList<string> Errors)
+{
+    public static RawFeedParseResult FromRecords(IReadOnlyList<TransactionRecord> records) =>
+        new(records, []);
+}
+
+/// <summary>
 /// Parses one raw-feed file into <see cref="TransactionRecord"/>s. Implementations
 /// are format-specific and live in the infrastructure ring; the ingestor picks the
 /// first whose <see cref="CanParse"/> matches. The pipeline does not care whether
@@ -9,7 +22,7 @@ namespace Finance.Domain.Ingestion;
 public interface IRawFeedParser
 {
     bool CanParse(string fileName);
-    IReadOnlyList<TransactionRecord> Parse(string filePath, string sourceId);
+    RawFeedParseResult Parse(string filePath, string sourceId);
 }
 
 /// <summary>
@@ -26,7 +39,7 @@ public sealed class NotImplementedRawFeedParser : IRawFeedParser
     public bool CanParse(string fileName) =>
         Extensions.Any(ext => fileName.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
 
-    public IReadOnlyList<TransactionRecord> Parse(string filePath, string sourceId) =>
+    public RawFeedParseResult Parse(string filePath, string sourceId) =>
         throw new NotSupportedException(
             $"No parser for '{Path.GetFileName(filePath)}' yet. Statement/PDF parsing is a " +
             "deferred follow-up (see the plan). Drop scraper JSON here for now, or add the " +

@@ -66,7 +66,11 @@ public sealed class IngestRawFeeds
                 }
 
                 filesProcessed++;
-                var (kept, dropped) = _installmentPolicy.Filter(parser.Parse(file.Path, source.Id));
+                var parsed = parser.Parse(file.Path, source.Id);
+                foreach (var error in parsed.Errors)
+                    messages.Add($"source '{source.Id}': {error}");
+
+                var (kept, dropped) = _installmentPolicy.Filter(parsed.Records);
                 droppedInstallments += dropped;
 
                 foreach (var record in kept)
@@ -75,7 +79,7 @@ public sealed class IngestRawFeeds
                         Id: IdempotencyKey.For(record),
                         SourceId: record.SourceId,
                         Date: record.Date,
-                        AmountAgorot: record.AmountAgorot,
+                        Amount: record.Amount,
                         MerchantRaw: record.MerchantRaw);
 
                     if (_transactions.InsertIfAbsent(row))

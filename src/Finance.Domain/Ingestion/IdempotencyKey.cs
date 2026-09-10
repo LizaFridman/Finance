@@ -23,7 +23,7 @@ public static class IdempotencyKey
             '|',
             record.SourceId,
             record.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            record.AmountAgorot.ToString(CultureInfo.InvariantCulture),
+            record.Amount.Agorot.ToString(CultureInfo.InvariantCulture),
             record.MerchantRaw.Trim());
 
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(basis));

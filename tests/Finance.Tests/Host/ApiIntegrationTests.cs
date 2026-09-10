@@ -69,6 +69,20 @@ public class ApiIntegrationTests : IClassFixture<ApiIntegrationTests.Factory>
     }
 
     [Fact]
+    public async Task Transactions_endpoint_serialises_amount_as_a_plain_shekel_number()
+    {
+        var db = _factory.Services.GetRequiredService<SqliteDatabase>();
+        TestData.InsertTx(db, "money-1", "2025-08-01", -123.45m);
+        var client = _factory.CreateClient();
+
+        var rows = await client.GetFromJsonAsync<JsonElement>("/api/transactions?from=2025-08-01&to=2025-08-31");
+
+        var amount = rows.EnumerateArray().Single().GetProperty("amount");
+        Assert.Equal(JsonValueKind.Number, amount.ValueKind);
+        Assert.Equal(-123.45m, amount.GetDecimal());
+    }
+
+    [Fact]
     public async Task Confirming_a_category_for_an_unknown_transaction_is_404()
     {
         var client = _factory.CreateClient();

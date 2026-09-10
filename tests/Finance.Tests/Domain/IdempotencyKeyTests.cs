@@ -1,4 +1,5 @@
 using System;
+using Finance.Domain;
 using Finance.Domain.Ingestion;
 
 namespace Finance.Tests.Domain;
@@ -11,7 +12,7 @@ public class IdempotencyKeyTests
         decimal shekels = -123.45m,
         string merchant = "  שופרסל אונליין  ",
         string? nativeId = null)
-        => new(source, DateOnly.Parse(date), Finance.Domain.Money.ToAgorot(shekels), merchant, nativeId);
+        => new(source, DateOnly.Parse(date), Money.FromShekels(shekels), merchant, nativeId);
 
     [Fact]
     public void Same_inputs_produce_the_same_key()

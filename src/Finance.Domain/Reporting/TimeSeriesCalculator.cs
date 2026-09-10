@@ -156,15 +156,16 @@ public sealed class TimeSeriesCalculator
 
     private static Measures Aggregate(IEnumerable<TransactionRow> rows)
     {
-        long income = 0, expense = 0;
+        var income = Money.Zero;
+        var expense = Money.Zero;
         foreach (var row in rows)
         {
-            if (row.AmountAgorot > 0)
-                income += row.AmountAgorot;
+            if (row.Amount.IsInflow)
+                income += row.Amount;
             else
-                expense += -row.AmountAgorot;
+                expense += -row.Amount; // outflow magnitude as a positive amount
         }
-        return Measures.FromAgorot(income, expense);
+        return Measures.From(income, expense);
     }
 
     // The one place grain semantics live: how a date maps to its period start,

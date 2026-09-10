@@ -7,7 +7,7 @@ namespace Finance.Domain.Reporting;
 /// <see cref="TimeSeriesCalculator"/>.
 /// </summary>
 public readonly record struct TransactionRow(
-    DateOnly Date, long AmountAgorot, string? BucketId, string? CategoryId);
+    DateOnly Date, Money Amount, string? BucketId, string? CategoryId);
 
 /// <summary>
 /// The single persistence touch-point for reporting: returns the raw rows a

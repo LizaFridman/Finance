@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Finance.Domain;
 using Finance.Domain.Reporting;
 
 namespace Finance.Tests.Domain;
@@ -17,7 +18,7 @@ public class TimeSeriesCalculatorTests
     private static DateOnly D(string s) => DateOnly.Parse(s);
 
     private static TransactionRow Row(string date, decimal shekels, string? bucket = null, string? category = null) =>
-        new(D(date), (long)(shekels * 100m), bucket, category);
+        new(D(date), Money.FromShekels(shekels), bucket, category);
 
     [Fact]
     public void Monthly_series_is_ordered_and_gap_free()

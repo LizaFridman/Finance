@@ -1,14 +1,31 @@
 namespace Finance.Domain;
 
 /// <summary>
-/// Conversions between shekels (<see cref="decimal"/>, the boundary type) and
-/// agorot (<see cref="long"/>, how amounts are stored — see the sign-convention
-/// note in schema.sql / flagged decision 1). 1 shekel = 100 agorot.
+/// A signed money amount in agorot (₪1 = 100 agorot) — the integer minor unit the
+/// whole system stores so that <c>GROUP BY SUM</c> over a time series stays exact
+/// (schema.sql sign-convention note / flagged decision 1). Negative = outflow.
+/// Decimal shekels appear only at the API / UI boundary, via <see cref="Shekels"/>
+/// and <see cref="FromShekels"/>.
 /// </summary>
-public static class Money
+public readonly record struct Money(long Agorot) : IComparable<Money>
 {
-    public static long ToAgorot(decimal shekels) =>
-        (long)decimal.Round(shekels * 100m, MidpointRounding.AwayFromZero);
+    public static readonly Money Zero = new(0);
 
-    public static decimal ToShekels(long agorot) => agorot / 100m;
+    public static Money FromShekels(decimal shekels) =>
+        new((long)decimal.Round(shekels * 100m, MidpointRounding.AwayFromZero));
+
+    public decimal Shekels => Agorot / 100m;
+
+    public bool IsInflow => Agorot > 0;
+    public bool IsOutflow => Agorot < 0;
+
+    public static Money operator +(Money a, Money b) => new(a.Agorot + b.Agorot);
+    public static Money operator -(Money a, Money b) => new(a.Agorot - b.Agorot);
+    public static Money operator -(Money value) => new(-value.Agorot);
+
+    public int CompareTo(Money other) => Agorot.CompareTo(other.Agorot);
+    public static bool operator <(Money a, Money b) => a.Agorot < b.Agorot;
+    public static bool operator >(Money a, Money b) => a.Agorot > b.Agorot;
+    public static bool operator <=(Money a, Money b) => a.Agorot <= b.Agorot;
+    public static bool operator >=(Money a, Money b) => a.Agorot >= b.Agorot;
 }

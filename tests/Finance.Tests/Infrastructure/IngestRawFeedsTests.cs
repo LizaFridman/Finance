@@ -109,4 +109,22 @@ public class IngestRawFeedsTests : IDisposable
 
         Assert.True(new TransactionRepository(_t.Db).Exists("native:leumi:ABC123"));
     }
+
+    [Fact]
+    public void A_malformed_row_is_reported_but_does_not_abort_the_file()
+    {
+        DropJson("leumi", "mixed.json", """
+        [
+          { "date": "2025-02-03", "amount": -10.00, "merchantRaw": "good" },
+          { "date": "not-a-date", "amount": -20.00, "merchantRaw": "bad date" },
+          { "date": "2025-02-05", "amount": -30.00, "merchantRaw": "" }
+        ]
+        """);
+
+        var result = NewIngest().Execute();
+
+        Assert.Equal(1, result.Inserted); // only the first row
+        Assert.Contains(result.Messages, m => m.Contains("row 2"));
+        Assert.Contains(result.Messages, m => m.Contains("row 3"));
+    }
 }

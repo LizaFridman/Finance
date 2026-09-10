@@ -1,4 +1,5 @@
 using System;
+using Finance.Domain;
 using Finance.Domain.Ingestion;
 
 namespace Finance.Tests.Domain;
@@ -11,10 +12,10 @@ namespace Finance.Tests.Domain;
 public class InstallmentPolicyTests
 {
     private static TransactionRecord Normal()
-        => new("cal", new DateOnly(2025, 5, 1), -5000, "רגיל");
+        => new("cal", new DateOnly(2025, 5, 1), new Money(-5000), "רגיל");
 
     private static TransactionRecord Installment(int number, int total)
-        => new("cal", new DateOnly(2025, 5, 1), -5000, "בתשלומים",
+        => new("cal", new DateOnly(2025, 5, 1), new Money(-5000), "בתשלומים",
                Installments: new InstallmentInfo(number, total));
 
     [Fact]
@@ -32,7 +33,7 @@ public class InstallmentPolicyTests
         var (kept, dropped) = new InstallmentPolicy().Filter(new[] { Installment(1, 12) });
 
         Assert.Single(kept);
-        Assert.Equal(-5000, kept[0].AmountAgorot);
+        Assert.Equal(new Money(-5000), kept[0].Amount);
         Assert.Equal(0, dropped);
     }
 

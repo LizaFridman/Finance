@@ -30,10 +30,10 @@ public readonly record struct Measures(decimal Income, decimal Expense, decimal 
 {
     public static readonly Measures Zero = new(0m, 0m, 0m);
 
-    public static Measures FromAgorot(long incomeAgorot, long expenseAgorot) => new(
-        Finance.Domain.Money.ToShekels(incomeAgorot),
-        Finance.Domain.Money.ToShekels(expenseAgorot),
-        Finance.Domain.Money.ToShekels(incomeAgorot - expenseAgorot));
+    public static Measures From(Money income, Money expense) => new(
+        income.Shekels,
+        expense.Shekels,
+        (income - expense).Shekels);
 
     public Measures Plus(Measures other) => new(
         Income + other.Income,

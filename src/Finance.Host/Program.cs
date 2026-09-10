@@ -65,7 +65,10 @@ builder.Services.AddSingleton<IRawFeedFiles>(_ => new PhysicalRawFeedFiles(rawFe
 builder.Services.AddSingleton<IngestRawFeeds>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.SerializerOptions.Converters.Add(new MoneyJsonConverter());
+});
 
 builder.Services.AddCors(options => options.AddPolicy("dashboard", policy =>
 {

@@ -11,7 +11,7 @@ public sealed record InstallmentInfo(int Number, int Total);
 public sealed record TransactionRecord(
     string SourceId,
     DateOnly Date,
-    long AmountAgorot,
+    Money Amount,
     string MerchantRaw,
     string? NativeId = null,
     InstallmentInfo? Installments = null);

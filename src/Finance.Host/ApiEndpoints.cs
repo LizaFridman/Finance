@@ -28,7 +28,16 @@ public static class ApiEndpoints
             ITransactionRepository repo,
             string? status, string? bucket, DateOnly? from, DateOnly? to,
             bool uncategorized = false, bool unbucketed = false, int limit = 500) =>
-            Results.Ok(repo.Query(status, bucket, from, to, uncategorized, unbucketed, limit)));
+            Results.Ok(repo.Query(new TransactionQuery
+            {
+                Status = status,
+                BucketId = bucket,
+                From = from,
+                To = to,
+                CategoryIsNull = uncategorized,
+                BucketIsNull = unbucketed,
+                Limit = limit,
+            })));
 
         // --- time series (the primary surface) -------------------------------
         app.MapGet("/api/series", (HttpRequest req, ITimeSeriesReporting q) =>

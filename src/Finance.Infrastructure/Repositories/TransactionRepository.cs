@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Finance.Domain;
 using Finance.Domain.Persistence;
 using Microsoft.Data.Sqlite;
 
@@ -28,7 +29,7 @@ public sealed class TransactionRepository : ITransactionRepository
         cmd.Parameters.AddWithValue("$id", transaction.Id);
         cmd.Parameters.AddWithValue("$source", transaction.SourceId);
         cmd.Parameters.AddWithValue("$date", transaction.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-        cmd.Parameters.AddWithValue("$amount", transaction.AmountAgorot);
+        cmd.Parameters.AddWithValue("$amount", transaction.Amount.Agorot);
         cmd.Parameters.AddWithValue("$merchant", transaction.MerchantRaw);
         return cmd.ExecuteNonQuery() == 1;
     });
@@ -69,27 +70,20 @@ public sealed class TransactionRepository : ITransactionRepository
         return (IReadOnlyList<TransactionDetail>)results;
     });
 
-    public IReadOnlyList<TransactionDetail> Query(
-        string? status = null,
-        string? bucketId = null,
-        DateOnly? from = null,
-        DateOnly? to = null,
-        bool categoryIsNull = false,
-        bool bucketIsNull = false,
-        int limit = 500) => _db.Run(c =>
+    public IReadOnlyList<TransactionDetail> Query(TransactionQuery query) => _db.Run(c =>
     {
         using var cmd = c.CreateCommand();
         var sql = new StringBuilder($"SELECT {SelectColumns} FROM transactions WHERE 1 = 1");
 
-        if (status is not null) { sql.Append(" AND status = $status"); cmd.Parameters.AddWithValue("$status", status); }
-        if (bucketId is not null) { sql.Append(" AND bucket_id = $bucket"); cmd.Parameters.AddWithValue("$bucket", bucketId); }
-        if (from is { } f) { sql.Append(" AND date >= $from"); cmd.Parameters.AddWithValue("$from", f.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)); }
-        if (to is { } tt) { sql.Append(" AND date <= $to"); cmd.Parameters.AddWithValue("$to", tt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)); }
-        if (categoryIsNull) sql.Append(" AND category_id IS NULL");
-        if (bucketIsNull) sql.Append(" AND bucket_id IS NULL");
+        if (query.Status is { } status) { sql.Append(" AND status = $status"); cmd.Parameters.AddWithValue("$status", status); }
+        if (query.BucketId is { } bucketId) { sql.Append(" AND bucket_id = $bucket"); cmd.Parameters.AddWithValue("$bucket", bucketId); }
+        if (query.From is { } f) { sql.Append(" AND date >= $from"); cmd.Parameters.AddWithValue("$from", f.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)); }
+        if (query.To is { } tt) { sql.Append(" AND date <= $to"); cmd.Parameters.AddWithValue("$to", tt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)); }
+        if (query.CategoryIsNull) sql.Append(" AND category_id IS NULL");
+        if (query.BucketIsNull) sql.Append(" AND bucket_id IS NULL");
 
         sql.Append(" ORDER BY date, id LIMIT $limit");
-        cmd.Parameters.AddWithValue("$limit", limit);
+        cmd.Parameters.AddWithValue("$limit", query.Limit);
         cmd.CommandText = sql.ToString();
 
         using var r = cmd.ExecuteReader();
@@ -122,7 +116,7 @@ public sealed class TransactionRepository : ITransactionRepository
         Id: r.GetString(0),
         SourceId: r.GetString(1),
         Date: DateOnly.ParseExact(r.GetString(2), "yyyy-MM-dd", CultureInfo.InvariantCulture),
-        AmountAgorot: r.GetInt64(3),
+        Amount: new Money(r.GetInt64(3)),
         MerchantRaw: r.GetString(4),
         CategoryId: r.IsDBNull(5) ? null : r.GetString(5),
         BucketId: r.IsDBNull(6) ? null : r.GetString(6),
