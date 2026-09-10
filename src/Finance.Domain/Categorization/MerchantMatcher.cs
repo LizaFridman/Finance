@@ -1,43 +1,47 @@
 namespace Finance.Domain.Categorization;
 
 /// <summary>
-/// Resolves a scraped merchant string to a category id using Layer 1, with the
-/// match priority from spec §10.3:
+/// Resolves a scraped merchant string to a category id against an in-memory
+/// snapshot of Layer 1, with the match priority from spec §10.3:
 ///   1. exact merchant match;
 ///   2. otherwise the <em>longest</em> known merchant string contained in the
 ///      raw name (so "שופרסל דיל אקסטרה" beats a bare "שופרסל");
 ///   3. otherwise no match — the transaction stays for Layer 2 review.
+///
+/// Build one per sweep (see <see cref="FromDictionary"/>) so Layer 1 is read
+/// once, not once per transaction.
 /// </summary>
 public sealed class MerchantMatcher
 {
-    private readonly IMerchantDictionary _dictionary;
+    private readonly Dictionary<string, string> _exact;
+    private readonly IReadOnlyList<KeyValuePair<string, string>> _byLengthDescending;
 
-    public MerchantMatcher(IMerchantDictionary dictionary)
+    public MerchantMatcher(IEnumerable<KeyValuePair<string, string>> entries)
     {
-        _dictionary = dictionary;
+        var list = entries.ToList();
+
+        _exact = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (merchant, categoryId) in list)
+            _exact[merchant] = categoryId; // last write wins, matching an upsert
+
+        _byLengthDescending = list.OrderByDescending(e => e.Key.Length).ToList();
     }
+
+    /// <summary>Snapshot the whole dictionary now and match against that snapshot.</summary>
+    public static MerchantMatcher FromDictionary(IMerchantDictionary dictionary) =>
+        new(dictionary.Entries());
 
     public string? Resolve(string merchantRaw)
     {
         var needle = merchantRaw.Trim();
 
-        // 1. exact
-        var exact = _dictionary.Resolve(needle);
-        if (exact is not null)
+        if (_exact.TryGetValue(needle, out var exact))
             return exact;
 
-        // 2. longest contains-match
-        string? best = null;
-        var bestLength = -1;
-        foreach (var (known, categoryId) in _dictionary.Entries())
-        {
-            if (known.Length > bestLength && needle.Contains(known, StringComparison.Ordinal))
-            {
-                best = categoryId;
-                bestLength = known.Length;
-            }
-        }
+        foreach (var (known, categoryId) in _byLengthDescending)
+            if (needle.Contains(known, StringComparison.Ordinal))
+                return categoryId;
 
-        return best;
+        return null;
     }
 }

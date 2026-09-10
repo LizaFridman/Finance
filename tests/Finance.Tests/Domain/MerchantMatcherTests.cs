@@ -1,42 +1,32 @@
+using System.Collections.Generic;
+using System.Linq;
 using Finance.Domain.Categorization;
 
 namespace Finance.Tests.Domain;
 
 public class MerchantMatcherTests
 {
-    private sealed class FakeDictionary : IMerchantDictionary
-    {
-        private readonly Dictionary<string, string> _entries = new();
-        public void Upsert(string merchantRaw, string categoryId) => _entries[merchantRaw] = categoryId;
-        public string? Resolve(string merchantRaw) => _entries.GetValueOrDefault(merchantRaw);
-        public IReadOnlyList<KeyValuePair<string, string>> Entries() => _entries.ToList();
-    }
+    private static MerchantMatcher Matcher(params (string Merchant, string Category)[] entries) =>
+        new(entries.Select(e => new KeyValuePair<string, string>(e.Merchant, e.Category)));
 
     [Fact]
     public void An_empty_dictionary_resolves_nothing()
     {
-        var matcher = new MerchantMatcher(new FakeDictionary());
-
-        Assert.Null(matcher.Resolve("שופרסל אונליין"));
+        Assert.Null(Matcher().Resolve("שופרסל אונליין"));
     }
 
     [Fact]
     public void An_exact_merchant_match_wins()
     {
-        var dict = new FakeDictionary();
-        dict.Upsert("וולט", "delivery");
-        var matcher = new MerchantMatcher(dict);
-
-        Assert.Equal("delivery", matcher.Resolve("וולט"));
+        Assert.Equal("delivery", Matcher(("וולט", "delivery")).Resolve("וולט"));
     }
 
     [Fact]
     public void An_exact_match_beats_a_contains_match()
     {
-        var dict = new FakeDictionary();
-        dict.Upsert("שופרסל", "groceries_generic");
-        dict.Upsert("שופרסל אונליין", "groceries_online");
-        var matcher = new MerchantMatcher(dict);
+        var matcher = Matcher(
+            ("שופרסל", "groceries_generic"),
+            ("שופרסל אונליין", "groceries_online"));
 
         Assert.Equal("groceries_online", matcher.Resolve("שופרסל אונליין"));
     }
@@ -44,10 +34,9 @@ public class MerchantMatcherTests
     [Fact]
     public void When_only_contains_matches_exist_the_longest_one_wins()
     {
-        var dict = new FakeDictionary();
-        dict.Upsert("שופרסל", "groceries_generic");
-        dict.Upsert("שופרסל דיל אקסטרה", "groceries_deal");
-        var matcher = new MerchantMatcher(dict);
+        var matcher = Matcher(
+            ("שופרסל", "groceries_generic"),
+            ("שופרסל דיל אקסטרה", "groceries_deal"));
 
         // incoming string contains both known merchants; the more specific (longer) wins
         Assert.Equal("groceries_deal", matcher.Resolve("קניה שופרסל דיל אקסטרה סניף 123"));
@@ -56,9 +45,7 @@ public class MerchantMatcherTests
     [Fact]
     public void Matching_is_on_the_exact_scraped_string_not_a_loose_note()
     {
-        var dict = new FakeDictionary();
-        dict.Upsert("שופרסל אונליין", "groceries");
-        var matcher = new MerchantMatcher(dict);
+        var matcher = Matcher(("שופרסל אונליין", "groceries"));
 
         Assert.Null(matcher.Resolve("Shufersal")); // English note shorthand never matches (spec §10.1)
     }

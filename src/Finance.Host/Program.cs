@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Finance.Application.Categorization;
 using Finance.Application.Reporting;
 using Finance.Domain.Categorization;
 using Finance.Domain.Ingestion;
@@ -41,7 +42,8 @@ builder.Services.AddSingleton<ISourceRepository, SourceRepository>();
 builder.Services.AddSingleton<ITransactionRepository, TransactionRepository>();
 builder.Services.AddSingleton<IMerchantDictionary, MerchantDictionary>();
 builder.Services.AddSingleton<SourceRegistry>();
-builder.Services.AddSingleton<CategorizationService>();
+builder.Services.AddSingleton<ConfirmCategory>();
+builder.Services.AddSingleton<RunCategorizationBacklog>();
 
 // Time-series reporting: SQL row-reader (infra) + pure calculator (domain),
 // composed in the application ring.

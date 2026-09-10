@@ -1,10 +1,8 @@
-using Finance.Domain.Categorization;
+using Finance.Application.Categorization;
+using Finance.Application.Reporting;
 using Finance.Domain.Ingestion;
 using Finance.Domain.Persistence;
 using Finance.Domain.Reporting;
-using Finance.Domain.Sources;
-using Finance.Application.Reporting;
-using Finance.Infrastructure.Repositories;
 
 namespace Finance.Host;
 
@@ -92,10 +90,10 @@ public static class ApiEndpoints
         // --- review-loop writes (Phases 2–3) --------------------------------
         app.MapPost("/api/transactions/{id}/category", (
             string id, ConfirmCategoryRequest body,
-            CategorizationService categorization) =>
+            ConfirmCategory confirm, RunCategorizationBacklog backlog) =>
         {
-            categorization.ConfirmCategory(id, body.CategoryId, body.CategoryLabel);
-            var autoResolved = categorization.AutoCategorizeBacklog();
+            confirm.Execute(id, body.CategoryId, body.CategoryLabel);
+            var autoResolved = backlog.Execute();
             return Results.Ok(new { confirmed = id, autoResolved });
         });
 
