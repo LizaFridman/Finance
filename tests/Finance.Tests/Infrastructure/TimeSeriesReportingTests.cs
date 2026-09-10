@@ -2,14 +2,15 @@ using System;
 using System.Linq;
 using Finance.Domain.Reporting;
 using Finance.Infrastructure;
-using Finance.Infrastructure.Queries;
+using Finance.Application.Reporting;
+using Finance.Infrastructure.Reporting;
 
 namespace Finance.Tests.Infrastructure;
 
-public class TimeSeriesQueriesTests
+public class TimeSeriesReportingTests
 {
-    private static TimeSeriesQueries Queries(TempDatabase t) =>
-        new(t.Db, new ConfigStore(t.Db));
+    private static ITimeSeriesReporting Reporting(TempDatabase t) =>
+        new TimeSeriesReporting(new TransactionRowReader(t.Db), new ConfigStore(t.Db), new TimeSeriesCalculator());
 
     private static DateOnly D(string s) => DateOnly.Parse(s);
 
@@ -20,7 +21,7 @@ public class TimeSeriesQueriesTests
         TestData.InsertTx(t.Db, "a", "2025-01-15", -100m);
         TestData.InsertTx(t.Db, "b", "2025-04-10", -200m); // Feb + Mar have nothing
 
-        var points = Queries(t).MonthlyTrend(D("2025-01-01"), D("2025-04-30"));
+        var points = Reporting(t).MonthlyTrend(D("2025-01-01"), D("2025-04-30"));
 
         Assert.Equal(
             new[] { D("2025-01-01"), D("2025-02-01"), D("2025-03-01"), D("2025-04-01") },
@@ -36,7 +37,7 @@ public class TimeSeriesQueriesTests
         TestData.InsertTx(t.Db, "rent", "2025-03-02", -4200m);
         TestData.InsertTx(t.Db, "shop", "2025-03-03", -300m);
 
-        var m = Queries(t).MonthlyTrend(D("2025-03-01"), D("2025-03-31")).Single().Measures;
+        var m = Reporting(t).MonthlyTrend(D("2025-03-01"), D("2025-03-31")).Single().Measures;
 
         Assert.Equal(8000m, m.Income);
         Assert.Equal(4500m, m.Expense);         // outflows as a positive number
@@ -54,7 +55,7 @@ public class TimeSeriesQueriesTests
         TestData.InsertTx(t.Db, "3", "2026-03-10", -100m); // RY2025 month 12
         TestData.InsertTx(t.Db, "4", "2026-04-10", -100m); // RY2026 month 1 -> resets
 
-        var pts = Queries(t).CumulativeWithinYear(D("2025-04-01"), D("2026-04-30"))
+        var pts = Reporting(t).CumulativeWithinYear(D("2025-04-01"), D("2026-04-30"))
             .ToDictionary(p => p.PeriodStart, p => p.Measures.Expense);
 
         Assert.Equal(100m, pts[D("2025-04-01")]);
@@ -70,7 +71,7 @@ public class TimeSeriesQueriesTests
         TestData.InsertTx(t.Db, "f25", "2025-02-15", -500m);
         TestData.InsertTx(t.Db, "f26", "2026-02-15", -650m);
 
-        var yoy = Queries(t).YearOverYear(new[] { 2025, 2026 });
+        var yoy = Reporting(t).YearOverYear(new[] { 2025, 2026 });
 
         var february = yoy.Rows.Single(r => r.CalendarMonth == 2);
         Assert.Equal(500m, february.ByYear[2025].Expense);
@@ -87,7 +88,7 @@ public class TimeSeriesQueriesTests
         TestData.InsertTx(t.Db, "in1", "2025-01-01", -10m);  // within the Jan..Dec 2025 window
         TestData.InsertTx(t.Db, "in2", "2025-12-01", -5m);
 
-        var dec = Queries(t).Rolling12Month(D("2025-12-01"), D("2025-12-31")).Single().Measures;
+        var dec = Reporting(t).Rolling12Month(D("2025-12-01"), D("2025-12-31")).Single().Measures;
 
         Assert.Equal(15m, dec.Expense); // 10 + 5, the Dec-2024 charge has rolled off
     }
@@ -99,8 +100,8 @@ public class TimeSeriesQueriesTests
         TestData.InsertTx(t.Db, "assigned", "2025-05-01", -100m, bucket: "shared");
         TestData.InsertTx(t.Db, "pending", "2025-05-02", -400m, bucket: null);
 
-        var included = Queries(t).MonthlyTrend(D("2025-05-01"), D("2025-05-31")).Single().Measures;
-        var excluded = Queries(t).MonthlyTrend(
+        var included = Reporting(t).MonthlyTrend(D("2025-05-01"), D("2025-05-31")).Single().Measures;
+        var excluded = Reporting(t).MonthlyTrend(
             D("2025-05-01"), D("2025-05-31"),
             new SeriesFilter { NullBuckets = NullBucketHandling.Exclude }).Single().Measures;
 
@@ -115,7 +116,7 @@ public class TimeSeriesQueriesTests
         TestData.InsertTx(t.Db, "s", "2025-05-01", -100m, bucket: "shared");
         TestData.InsertTx(t.Db, "p", "2025-05-02", -400m, bucket: null);
 
-        var series = Queries(t).SeriesByBucket(Grain.Month, D("2025-05-01"), D("2025-05-31"));
+        var series = Reporting(t).SeriesByBucket(Grain.Month, D("2025-05-01"), D("2025-05-31"));
 
         var pending = series.Single(s => s.Key == ReportingKeys.NeedsBucketAssignment);
         Assert.Equal(400m, pending.Points.Single().Measures.Expense);
@@ -129,7 +130,7 @@ public class TimeSeriesQueriesTests
         // Two months, one row each, both initially in 'shared'.
         TestData.InsertTx(t.Db, "x", "2025-01-10", -100m, bucket: "shared");
         TestData.InsertTx(t.Db, "y", "2025-02-10", -300m, bucket: "shared");
-        var q = Queries(t);
+        var q = Reporting(t);
         var from = D("2025-01-01");
         var to = D("2025-02-28");
         var sharedOnly = new SeriesFilter { BucketId = "shared" };

@@ -1,11 +1,13 @@
 using System.Text.Json.Serialization;
+using Finance.Application.Reporting;
 using Finance.Domain.Categorization;
 using Finance.Domain.Ingestion;
 using Finance.Domain.Persistence;
+using Finance.Domain.Reporting;
 using Finance.Domain.Sources;
 using Finance.Infrastructure;
 using Finance.Infrastructure.Ingestion;
-using Finance.Infrastructure.Queries;
+using Finance.Infrastructure.Reporting;
 using Finance.Infrastructure.Repositories;
 using Finance.Host;
 
@@ -31,14 +33,20 @@ builder.Services.AddSingleton(new SqliteDatabase(
 builder.Services.AddSingleton(new SqliteDatabaseInfo(dbPath));
 
 builder.Services.AddSingleton<ConfigStore>();
+builder.Services.AddSingleton<IReportingConfig>(sp => sp.GetRequiredService<ConfigStore>());
 builder.Services.AddSingleton<IBucketRepository, BucketRepository>();
 builder.Services.AddSingleton<ICategoryRepository, CategoryRepository>();
 builder.Services.AddSingleton<ISourceRepository, SourceRepository>();
 builder.Services.AddSingleton<ITransactionRepository, TransactionRepository>();
 builder.Services.AddSingleton<IMerchantDictionary, MerchantDictionary>();
 builder.Services.AddSingleton<SourceRegistry>();
-builder.Services.AddSingleton<TimeSeriesQueries>();
 builder.Services.AddSingleton<CategorizationService>();
+
+// Time-series reporting: SQL row-reader (infra) + pure calculator (domain),
+// composed in the application ring.
+builder.Services.AddSingleton<ITransactionRowReader, TransactionRowReader>();
+builder.Services.AddSingleton<TimeSeriesCalculator>();
+builder.Services.AddSingleton<ITimeSeriesReporting, TimeSeriesReporting>();
 
 // Ingestion pipeline (spec §14 P0.5 — "underneath" the host). Scraper-JSON is the
 // only feed format implemented; the NotImplemented parser claims binary formats

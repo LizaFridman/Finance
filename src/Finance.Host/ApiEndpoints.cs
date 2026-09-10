@@ -3,7 +3,7 @@ using Finance.Domain.Ingestion;
 using Finance.Domain.Persistence;
 using Finance.Domain.Reporting;
 using Finance.Domain.Sources;
-using Finance.Infrastructure.Queries;
+using Finance.Application.Reporting;
 using Finance.Infrastructure.Repositories;
 
 namespace Finance.Host;
@@ -37,31 +37,31 @@ public static class ApiEndpoints
             Results.Ok(repo.Query(status, bucket, from, to, uncategorized, unbucketed, limit)));
 
         // --- time series (the primary surface) -------------------------------
-        app.MapGet("/api/series", (HttpRequest req, TimeSeriesQueries q) =>
+        app.MapGet("/api/series", (HttpRequest req, ITimeSeriesReporting q) =>
         {
             var (from, to) = req.Range();
             return Results.Ok(q.Series(req.Grain(), from, to, req.Filter()));
         });
 
-        app.MapGet("/api/series/trend", (HttpRequest req, TimeSeriesQueries q) =>
+        app.MapGet("/api/series/trend", (HttpRequest req, ITimeSeriesReporting q) =>
         {
             var (from, to) = req.Range();
             return Results.Ok(q.MonthlyTrend(from, to, req.Filter()));
         });
 
-        app.MapGet("/api/series/cumulative", (HttpRequest req, TimeSeriesQueries q) =>
+        app.MapGet("/api/series/cumulative", (HttpRequest req, ITimeSeriesReporting q) =>
         {
             var (from, to) = req.Range();
             return Results.Ok(q.CumulativeWithinYear(from, to, req.Filter()));
         });
 
-        app.MapGet("/api/series/rolling12", (HttpRequest req, TimeSeriesQueries q) =>
+        app.MapGet("/api/series/rolling12", (HttpRequest req, ITimeSeriesReporting q) =>
         {
             var (from, to) = req.Range();
             return Results.Ok(q.Rolling12Month(from, to, req.Filter()));
         });
 
-        app.MapGet("/api/series/yoy", (HttpRequest req, TimeSeriesQueries q) =>
+        app.MapGet("/api/series/yoy", (HttpRequest req, ITimeSeriesReporting q) =>
         {
             var years = (req.Query["years"].ToString())
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -71,13 +71,13 @@ public static class ApiEndpoints
             return Results.Ok(q.YearOverYear(years, req.Filter()));
         });
 
-        app.MapGet("/api/series/by-bucket", (HttpRequest req, TimeSeriesQueries q) =>
+        app.MapGet("/api/series/by-bucket", (HttpRequest req, ITimeSeriesReporting q) =>
         {
             var (from, to) = req.Range();
             return Results.Ok(q.SeriesByBucket(req.Grain(), from, to, req.Filter()));
         });
 
-        app.MapGet("/api/series/by-category", (HttpRequest req, TimeSeriesQueries q) =>
+        app.MapGet("/api/series/by-category", (HttpRequest req, ITimeSeriesReporting q) =>
         {
             var (from, to) = req.Range();
             return Results.Ok(q.SeriesByCategory(req.Grain(), from, to, req.Filter()));

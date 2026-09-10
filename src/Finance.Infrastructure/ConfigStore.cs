@@ -1,4 +1,5 @@
 using System.Globalization;
+using Finance.Domain.Reporting;
 
 namespace Finance.Infrastructure;
 
@@ -6,8 +7,10 @@ namespace Finance.Infrastructure;
 /// Typed access to the <c>config</c> key/value table — values that can change
 /// but are not per-transaction. Nothing here is a compile-time constant
 /// (spec §3): the year boundary in particular is read live at query time.
+/// Implements <see cref="IReportingConfig"/> so the reporting ring can read the
+/// year start without knowing it comes from SQLite.
 /// </summary>
-public sealed class ConfigStore
+public sealed class ConfigStore : IReportingConfig
 {
     public const string YearStartMonthKey = "year_start_month";
 
