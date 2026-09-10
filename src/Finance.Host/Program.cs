@@ -34,6 +34,7 @@ builder.Services.AddSingleton(new SqliteDatabaseInfo(dbPath));
 
 builder.Services.AddSingleton<ConfigStore>();
 builder.Services.AddSingleton<IReportingConfig>(sp => sp.GetRequiredService<ConfigStore>());
+builder.Services.AddSingleton<IUnitOfWork, SqliteUnitOfWork>();
 builder.Services.AddSingleton<IBucketRepository, BucketRepository>();
 builder.Services.AddSingleton<ICategoryRepository, CategoryRepository>();
 builder.Services.AddSingleton<ISourceRepository, SourceRepository>();

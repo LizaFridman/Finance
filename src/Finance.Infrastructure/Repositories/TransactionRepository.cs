@@ -1,17 +1,21 @@
 using System.Globalization;
+using System.Text;
 using Finance.Domain.Persistence;
+using Microsoft.Data.Sqlite;
 
 namespace Finance.Infrastructure.Repositories;
 
 public sealed class TransactionRepository : ITransactionRepository
 {
+    private const string SelectColumns =
+        "id, source_id, date, amount, merchant_raw, category_id, bucket_id, status";
+
     private readonly SqliteDatabase _db;
 
     public TransactionRepository(SqliteDatabase db) => _db = db;
 
-    public bool InsertIfAbsent(IngestedTransaction transaction)
+    public bool InsertIfAbsent(IngestedTransaction transaction) => _db.Run(c =>
     {
-        using var c = _db.OpenConnection();
         using var cmd = c.CreateCommand();
         // ON CONFLICT DO NOTHING makes a re-run a no-op (spec §7.1); ExecuteNonQuery
         // returns 1 when the row was written, 0 when the id already existed.
@@ -27,41 +31,34 @@ public sealed class TransactionRepository : ITransactionRepository
         cmd.Parameters.AddWithValue("$amount", transaction.AmountAgorot);
         cmd.Parameters.AddWithValue("$merchant", transaction.MerchantRaw);
         return cmd.ExecuteNonQuery() == 1;
-    }
+    });
 
-    public bool Exists(string id)
+    public bool Exists(string id) => _db.Run(c =>
     {
-        using var c = _db.OpenConnection();
         using var cmd = c.CreateCommand();
         cmd.CommandText = "SELECT EXISTS(SELECT 1 FROM transactions WHERE id = $id)";
         cmd.Parameters.AddWithValue("$id", id);
         return (long)cmd.ExecuteScalar()! == 1;
-    }
+    });
 
-    public int Count()
+    public int Count() => _db.Run(c =>
     {
-        using var c = _db.OpenConnection();
         using var cmd = c.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM transactions";
         return (int)(long)cmd.ExecuteScalar()!;
-    }
+    });
 
-    private const string SelectColumns =
-        "id, source_id, date, amount, merchant_raw, category_id, bucket_id, status";
-
-    public TransactionDetail? GetById(string id)
+    public TransactionDetail? GetById(string id) => _db.Run(c =>
     {
-        using var c = _db.OpenConnection();
         using var cmd = c.CreateCommand();
         cmd.CommandText = $"SELECT {SelectColumns} FROM transactions WHERE id = $id";
         cmd.Parameters.AddWithValue("$id", id);
         using var r = cmd.ExecuteReader();
         return r.Read() ? Read(r) : null;
-    }
+    });
 
-    public IReadOnlyList<TransactionDetail> WhereCategoryIsNull()
+    public IReadOnlyList<TransactionDetail> WhereCategoryIsNull() => _db.Run(c =>
     {
-        using var c = _db.OpenConnection();
         using var cmd = c.CreateCommand();
         cmd.CommandText =
             $"SELECT {SelectColumns} FROM transactions WHERE category_id IS NULL ORDER BY date, id";
@@ -69,8 +66,8 @@ public sealed class TransactionRepository : ITransactionRepository
         var results = new List<TransactionDetail>();
         while (r.Read())
             results.Add(Read(r));
-        return results;
-    }
+        return (IReadOnlyList<TransactionDetail>)results;
+    });
 
     public IReadOnlyList<TransactionDetail> Query(
         string? status = null,
@@ -79,11 +76,10 @@ public sealed class TransactionRepository : ITransactionRepository
         DateOnly? to = null,
         bool categoryIsNull = false,
         bool bucketIsNull = false,
-        int limit = 500)
+        int limit = 500) => _db.Run(c =>
     {
-        using var c = _db.OpenConnection();
         using var cmd = c.CreateCommand();
-        var sql = new System.Text.StringBuilder($"SELECT {SelectColumns} FROM transactions WHERE 1 = 1");
+        var sql = new StringBuilder($"SELECT {SelectColumns} FROM transactions WHERE 1 = 1");
 
         if (status is not null) { sql.Append(" AND status = $status"); cmd.Parameters.AddWithValue("$status", status); }
         if (bucketId is not null) { sql.Append(" AND bucket_id = $bucket"); cmd.Parameters.AddWithValue("$bucket", bucketId); }
@@ -100,31 +96,29 @@ public sealed class TransactionRepository : ITransactionRepository
         var results = new List<TransactionDetail>();
         while (r.Read())
             results.Add(Read(r));
-        return results;
-    }
+        return (IReadOnlyList<TransactionDetail>)results;
+    });
 
-    public void SetCategory(string id, string categoryId)
+    public void SetCategory(string id, string categoryId) => _db.Run(c =>
     {
-        using var c = _db.OpenConnection();
         using var cmd = c.CreateCommand();
         cmd.CommandText = "UPDATE transactions SET category_id = $cat WHERE id = $id";
         cmd.Parameters.AddWithValue("$cat", categoryId);
         cmd.Parameters.AddWithValue("$id", id);
         cmd.ExecuteNonQuery();
-    }
+    });
 
-    public void SetBucket(string id, string? bucketId)
+    public void SetBucket(string id, string? bucketId) => _db.Run(c =>
     {
-        using var c = _db.OpenConnection();
         using var cmd = c.CreateCommand();
         // One UPDATE, no file move — this is the whole point of the flat schema (spec §4.2).
         cmd.CommandText = "UPDATE transactions SET bucket_id = $bucket WHERE id = $id";
         cmd.Parameters.AddWithValue("$bucket", (object?)bucketId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$id", id);
         cmd.ExecuteNonQuery();
-    }
+    });
 
-    private static TransactionDetail Read(Microsoft.Data.Sqlite.SqliteDataReader r) => new(
+    private static TransactionDetail Read(SqliteDataReader r) => new(
         Id: r.GetString(0),
         SourceId: r.GetString(1),
         Date: DateOnly.ParseExact(r.GetString(2), "yyyy-MM-dd", CultureInfo.InvariantCulture),

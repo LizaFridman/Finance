@@ -21,26 +21,24 @@ public sealed class ConfigStore : IReportingConfig
         _db = db;
     }
 
-    public string? Get(string key)
+    public string? Get(string key) => _db.Run(c =>
     {
-        using var connection = _db.OpenConnection();
-        using var cmd = connection.CreateCommand();
+        using var cmd = c.CreateCommand();
         cmd.CommandText = "SELECT value FROM config WHERE key = $key";
         cmd.Parameters.AddWithValue("$key", key);
         return cmd.ExecuteScalar() as string;
-    }
+    });
 
-    public void Set(string key, string value)
+    public void Set(string key, string value) => _db.Run(c =>
     {
-        using var connection = _db.OpenConnection();
-        using var cmd = connection.CreateCommand();
+        using var cmd = c.CreateCommand();
         cmd.CommandText =
             "INSERT INTO config (key, value) VALUES ($key, $value) " +
             "ON CONFLICT(key) DO UPDATE SET value = excluded.value";
         cmd.Parameters.AddWithValue("$key", key);
         cmd.Parameters.AddWithValue("$value", value);
         cmd.ExecuteNonQuery();
-    }
+    });
 
     /// <summary>
     /// Month that starts a reporting year. Absent config means the default, 1

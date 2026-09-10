@@ -34,11 +34,63 @@ public sealed class SqliteDatabase
 
     public string ConnectionString => _connectionString;
 
+    private readonly AsyncLocal<SqliteConnection?> _ambient = new();
+
     public SqliteConnection OpenConnection()
     {
         var connection = new SqliteConnection(_connectionString);
         connection.Open();
         return connection;
+    }
+
+    /// <summary>
+    /// Runs <paramref name="work"/> against a connection: the ambient one when a
+    /// <see cref="InTransaction"/> scope is active, otherwise a fresh short-lived
+    /// connection that is closed on return. This is the single acquisition point
+    /// every repository call goes through.
+    /// </summary>
+    public T Run<T>(Func<SqliteConnection, T> work)
+    {
+        if (_ambient.Value is { } shared)
+            return work(shared);
+
+        using var connection = OpenConnection();
+        return work(connection);
+    }
+
+    public void Run(Action<SqliteConnection> work) =>
+        Run<object?>(connection => { work(connection); return null; });
+
+    /// <summary>
+    /// Runs <paramref name="work"/> inside one transaction: every repository call
+    /// it makes shares that connection and they commit or roll back together.
+    /// Reentrant — a nested call joins the outer transaction.
+    /// </summary>
+    public void InTransaction(Action work)
+    {
+        if (_ambient.Value is not null)
+        {
+            work();
+            return;
+        }
+
+        using var connection = OpenConnection();
+        using var transaction = connection.BeginTransaction();
+        _ambient.Value = connection;
+        try
+        {
+            work();
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+        finally
+        {
+            _ambient.Value = null;
+        }
     }
 
     /// <summary>
