@@ -8,10 +8,9 @@ public sealed record Credential(string Username, string Secret, string? ExtraId 
 
 /// <summary>
 /// Local, OS-appropriate storage for bank/card credentials. Credentials never
-/// leave the host machine and are never committed (spec §7.2). The C# ingestion
-/// orchestrator is the single owner: it reads from here and injects the values
-/// into the Node scraper child process as environment variables — the scraper
-/// itself has no credential store of its own.
+/// leave the host machine and are never committed (spec §7.2). Concrete stores
+/// live in the infrastructure ring; the port is defined here so ingestion can
+/// depend on it without knowing the medium.
 /// </summary>
 public interface ICredentialStore
 {
@@ -30,31 +29,4 @@ public enum CredentialStoreKind
 
     /// <summary>A local <c>.env</c> file (Linux / Raspberry&#160;Pi host — spec §14 P0.2).</summary>
     DotEnv,
-}
-
-/// <summary>
-/// Chooses a concrete <see cref="ICredentialStore"/>. The host machine (spec §15)
-/// is still undecided, so this stays a runtime choice, overridable by config.
-/// </summary>
-public static class CredentialStoreFactory
-{
-    public static ICredentialStore Create(CredentialStoreKind kind = CredentialStoreKind.Auto, string? dotEnvPath = null)
-    {
-        var resolved = kind == CredentialStoreKind.Auto
-            ? (OperatingSystem.IsWindows() ? CredentialStoreKind.Windows : CredentialStoreKind.DotEnv)
-            : kind;
-
-        if (resolved == CredentialStoreKind.DotEnv)
-            return new DotEnvCredentialStore(dotEnvPath ?? ".env");
-
-        if (resolved == CredentialStoreKind.Windows)
-        {
-            if (!OperatingSystem.IsWindows())
-                throw new PlatformNotSupportedException(
-                    "The Windows credential store needs Windows. Use CredentialStoreKind.DotEnv on a Linux/Pi host.");
-            return new WindowsCredentialStore();
-        }
-
-        throw new ArgumentOutOfRangeException(nameof(kind), kind, null);
-    }
 }

@@ -40,22 +40,31 @@ public sealed class ConfigStore
     }
 
     /// <summary>
-    /// Month (1–12) that starts a reporting year. Drives yearly rollups and the
-    /// cumulative-within-year reset. Defaults to 1 (January) via the schema seed.
+    /// Month that starts a reporting year. Absent config means the default, 1
+    /// (January). A present-but-non-numeric value is corrupt and surfaces loudly.
+    /// The 1–12 range itself is validated in exactly one place — the
+    /// <see cref="Finance.Domain.Reporting.ReportingCalendar"/> constructor — so a
+    /// stored 13 fails there, at the point of use, not silently here.
     /// </summary>
     public int GetYearStartMonth()
     {
         var raw = Get(YearStartMonthKey);
-        return raw is not null
-            && int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var month)
-            ? month : 1;
+        if (raw is null)
+            return 1;
+        if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var month))
+            throw new InvalidOperationException(
+                $"config.{YearStartMonthKey} = '{raw}' is not an integer.");
+        return month;
     }
 
+    /// <summary>
+    /// Persists the reporting-year start month. Rejects out-of-range input up
+    /// front by round-tripping it through <see cref="Finance.Domain.Reporting.ReportingCalendar"/>,
+    /// the single owner of that invariant.
+    /// </summary>
     public void SetYearStartMonth(int month)
     {
-        if (month is < 1 or > 12)
-            throw new ArgumentOutOfRangeException(
-                nameof(month), month, "Year start month must be between 1 and 12.");
+        _ = new Finance.Domain.Reporting.ReportingCalendar(month);
         Set(YearStartMonthKey, month.ToString(CultureInfo.InvariantCulture));
     }
 }

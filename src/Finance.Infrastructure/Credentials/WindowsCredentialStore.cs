@@ -2,8 +2,9 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
+using Finance.Domain.Credentials;
 
-namespace Finance.Domain.Credentials;
+namespace Finance.Infrastructure.Credentials;
 
 /// <summary>
 /// Stores each credential as a generic entry in Windows Credential Manager under

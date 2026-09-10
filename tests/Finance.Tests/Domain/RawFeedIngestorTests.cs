@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Finance.Domain.Ingestion;
 using Finance.Domain.Sources;
+using Finance.Infrastructure.Ingestion;
 using Finance.Infrastructure.Repositories;
 
 namespace Finance.Tests.Domain;

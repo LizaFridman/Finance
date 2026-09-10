@@ -1,8 +1,9 @@
 using System;
 using System.IO;
 using Finance.Domain.Credentials;
+using Finance.Infrastructure.Credentials;
 
-namespace Finance.Tests.Domain;
+namespace Finance.Tests.Infrastructure;
 
 public class DotEnvCredentialStoreTests : IDisposable
 {

@@ -1,4 +1,6 @@
-namespace Finance.Domain.Credentials;
+using Finance.Domain.Credentials;
+
+namespace Finance.Infrastructure.Credentials;
 
 /// <summary>
 /// Stores credentials as <c>SOURCE_USERNAME</c> / <c>SOURCE_PASSWORD</c> /

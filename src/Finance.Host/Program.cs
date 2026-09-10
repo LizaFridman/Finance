@@ -4,6 +4,7 @@ using Finance.Domain.Ingestion;
 using Finance.Domain.Persistence;
 using Finance.Domain.Sources;
 using Finance.Infrastructure;
+using Finance.Infrastructure.Ingestion;
 using Finance.Infrastructure.Queries;
 using Finance.Infrastructure.Repositories;
 using Finance.Host;
