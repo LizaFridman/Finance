@@ -31,7 +31,7 @@ public sealed class ExportGenerator
         new Dictionary<string, Func<LegacyExportRow, object?>>(StringComparer.OrdinalIgnoreCase)
         {
             ["Timestamp"] = r => r.Timestamp,
-            ["Date"] = r => r.Date.ToString("yyyy-MM-dd"),
+            ["Date"] = r => r.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             ["Amount"] = r => r.Amount,
             ["Category"] = r => r.Category,
             ["Split Method"] = r => r.SplitMethod,
@@ -62,7 +62,8 @@ public sealed class ExportGenerator
             {
                 if (!FieldByHeader.TryGetValue(headers[col], out var selector))
                     continue;
-                sheet.Cell(rowIndex, col + 1).Value = XLCellValue.FromObject(selector(row));
+                sheet.Cell(rowIndex, col + 1).Value =
+                    XLCellValue.FromObject(selector(row), CultureInfo.InvariantCulture);
             }
             rowIndex++;
         }

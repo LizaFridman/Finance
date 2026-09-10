@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Use cases / interactors. Orchestrates the domain and its ports; depends
+       on Domain only, never on infrastructure. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Finance.Domain\Finance.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

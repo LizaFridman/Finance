@@ -3,7 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Finance.Data;
+using Finance.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -66,6 +66,41 @@ public class ApiIntegrationTests : IClassFixture<ApiIntegrationTests.Factory>
             .Single(r => r.GetProperty("calendarMonth").GetInt32() == 3);
         Assert.Equal(400d, march.GetProperty("byYear").GetProperty("2024").GetProperty("expense").GetDouble());
         Assert.Equal(520d, march.GetProperty("byYear").GetProperty("2025").GetProperty("expense").GetDouble());
+    }
+
+    [Fact]
+    public async Task Transactions_endpoint_serialises_amount_as_a_plain_shekel_number()
+    {
+        var db = _factory.Services.GetRequiredService<SqliteDatabase>();
+        TestData.InsertTx(db, "money-1", "2025-08-01", -123.45m);
+        var client = _factory.CreateClient();
+
+        var rows = await client.GetFromJsonAsync<JsonElement>("/api/transactions?from=2025-08-01&to=2025-08-31");
+
+        var amount = rows.EnumerateArray().Single().GetProperty("amount");
+        Assert.Equal(JsonValueKind.Number, amount.ValueKind);
+        Assert.Equal(-123.45m, amount.GetDecimal());
+    }
+
+    [Fact]
+    public async Task Confirming_a_category_for_an_unknown_transaction_is_404()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/transactions/no-such-id/category", new { categoryId = "groceries" });
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Year_over_year_with_a_non_numeric_year_is_400()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/api/series/yoy?years=2025,notayear");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     public sealed class Factory : WebApplicationFactory<Program>
