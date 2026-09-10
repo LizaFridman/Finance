@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Finance.Application.Categorization;
+using Finance.Application.Ingestion;
 using Finance.Application.Reporting;
 using Finance.Domain.Categorization;
 using Finance.Domain.Ingestion;
@@ -15,22 +16,20 @@ using Finance.Host;
 var builder = WebApplication.CreateBuilder(args);
 
 // --- configuration -------------------------------------------------------------
-// The database path is resolved relative to the content root unless absolute.
-var dbPath = builder.Configuration["Finance:DatabasePath"] ?? "finance.db";
-if (!Path.IsPathRooted(dbPath))
-    dbPath = Path.Combine(builder.Environment.ContentRootPath, dbPath);
+// Relative paths in config are resolved against the content root.
+string ResolvePath(string configured) => Path.IsPathRooted(configured)
+    ? configured
+    : Path.Combine(builder.Environment.ContentRootPath, configured);
+
+var dbPath = ResolvePath(builder.Configuration["Finance:DatabasePath"] ?? "finance.db");
+var rawFeedPath = ResolvePath(builder.Configuration["Finance:RawDataFeedPath"] ?? "Raw Data Feed");
 
 var dashboardOrigins = builder.Configuration
     .GetSection("Finance:DashboardOrigins").Get<string[]>() ?? [];
 
 // --- services ----------------------------------------------------------------
 // Repositories open a short-lived connection per call, so singletons are fine.
-builder.Services.AddSingleton(new SqliteDatabase(
-    new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder
-    {
-        DataSource = dbPath,
-        ForeignKeys = true,
-    }.ConnectionString));
+builder.Services.AddSingleton(SqliteDatabase.ForFile(dbPath));
 builder.Services.AddSingleton(new SqliteDatabaseInfo(dbPath));
 
 builder.Services.AddSingleton<ConfigStore>();
@@ -57,12 +56,8 @@ builder.Services.AddSingleton<ITimeSeriesReporting, TimeSeriesReporting>();
 builder.Services.AddSingleton<IRawFeedParser, ScraperJsonParser>();
 builder.Services.AddSingleton<IRawFeedParser, NotImplementedRawFeedParser>();
 builder.Services.AddSingleton<InstallmentPolicy>();
-builder.Services.AddSingleton<RawFeedIngestor>();
-
-var rawFeedPath = builder.Configuration["Finance:RawDataFeedPath"] ?? "Raw Data Feed";
-if (!Path.IsPathRooted(rawFeedPath))
-    rawFeedPath = Path.Combine(builder.Environment.ContentRootPath, rawFeedPath);
-builder.Services.AddSingleton(new RawFeedPath(rawFeedPath));
+builder.Services.AddSingleton<IRawFeedFiles>(_ => new PhysicalRawFeedFiles(rawFeedPath));
+builder.Services.AddSingleton<IngestRawFeeds>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));

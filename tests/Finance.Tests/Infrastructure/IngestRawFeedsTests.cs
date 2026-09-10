@@ -1,19 +1,20 @@
 using System;
 using System.IO;
 using System.Linq;
+using Finance.Application.Ingestion;
 using Finance.Domain.Ingestion;
 using Finance.Domain.Sources;
 using Finance.Infrastructure.Ingestion;
 using Finance.Infrastructure.Repositories;
 
-namespace Finance.Tests.Domain;
+namespace Finance.Tests.Infrastructure;
 
-public class RawFeedIngestorTests : IDisposable
+public class IngestRawFeedsTests : IDisposable
 {
     private readonly TempDatabase _t = new();
     private readonly string _feedRoot;
 
-    public RawFeedIngestorTests()
+    public IngestRawFeedsTests()
     {
         _feedRoot = Path.Combine(Path.GetTempPath(), $"feed-{Guid.NewGuid():N}");
         foreach (var s in new[] { "leumi", "cal", "max" })
@@ -26,10 +27,11 @@ public class RawFeedIngestorTests : IDisposable
         try { Directory.Delete(_feedRoot, recursive: true); } catch (IOException) { }
     }
 
-    private RawFeedIngestor NewIngestor() => new(
+    private IngestRawFeeds NewIngest() => new(
         new SourceRegistry(new SourceRepository(_t.Db)),
-        new TransactionRepository(_t.Db),
-        new IRawFeedParser[] { new ScraperJsonParser() });
+        new PhysicalRawFeedFiles(_feedRoot),
+        new IRawFeedParser[] { new ScraperJsonParser() },
+        new TransactionRepository(_t.Db));
 
     private void DropJson(string source, string fileName, string json)
         => File.WriteAllText(Path.Combine(_feedRoot, source, fileName), json);
@@ -46,7 +48,7 @@ public class RawFeedIngestorTests : IDisposable
     {
         DropJson("leumi", "2025-02.json", TwoRows);
 
-        var result = NewIngestor().Ingest(_feedRoot);
+        var result = NewIngest().Execute();
 
         Assert.Equal(2, result.Inserted);
         Assert.Equal(2, new TransactionRepository(_t.Db).Count());
@@ -56,10 +58,10 @@ public class RawFeedIngestorTests : IDisposable
     public void Running_the_same_import_twice_is_a_no_op()
     {
         DropJson("leumi", "2025-02.json", TwoRows);
-        var ingestor = NewIngestor();
+        var ingestor = NewIngest();
 
-        ingestor.Ingest(_feedRoot);
-        var second = ingestor.Ingest(_feedRoot);
+        ingestor.Execute();
+        var second = ingestor.Execute();
 
         Assert.Equal(0, second.Inserted);
         Assert.Equal(2, second.SkippedDuplicates);
@@ -72,7 +74,7 @@ public class RawFeedIngestorTests : IDisposable
         DropJson("leumi", "2025-02.json", TwoRows);
         // cal/ and max/ are present but empty.
 
-        var result = NewIngestor().Ingest(_feedRoot);
+        var result = NewIngest().Execute();
 
         Assert.Equal(2, result.Inserted);
         Assert.Contains(result.Messages, m => m.Contains("max") && m.Contains("no files"));
@@ -90,7 +92,7 @@ public class RawFeedIngestorTests : IDisposable
         ]
         """);
 
-        var result = NewIngestor().Ingest(_feedRoot);
+        var result = NewIngest().Execute();
 
         Assert.Equal(1, result.Inserted);
         Assert.Equal(1, result.DroppedInstallments);
@@ -103,7 +105,7 @@ public class RawFeedIngestorTests : IDisposable
         [ { "date": "2025-02-03", "amount": -10.00, "merchantRaw": "x", "nativeId": "ABC123" } ]
         """);
 
-        NewIngestor().Ingest(_feedRoot);
+        NewIngest().Execute();
 
         Assert.True(new TransactionRepository(_t.Db).Exists("native:leumi:ABC123"));
     }

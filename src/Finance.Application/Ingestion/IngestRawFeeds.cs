@@ -1,8 +1,10 @@
+using Finance.Domain.Ingestion;
 using Finance.Domain.Persistence;
 using Finance.Domain.Sources;
 
-namespace Finance.Domain.Ingestion;
+namespace Finance.Application.Ingestion;
 
+/// <summary>Outcome of an ingestion run. <see cref="Messages"/> is per-source progress detail.</summary>
 public sealed record IngestionResult(
     int FilesProcessed,
     int Inserted,
@@ -11,52 +13,43 @@ public sealed record IngestionResult(
     IReadOnlyList<string> Messages);
 
 /// <summary>
-/// Walks <c>Raw Data Feed/&lt;source&gt;/</c>, parses whatever is there, and inserts
-/// only transactions whose idempotency key is new. It is deliberately indifferent
-/// to how a file arrived (scraper or manual) and treats an empty source folder as
-/// normal, not an error (spec §7.3).
+/// Walks every registered source's raw feed, parses whatever is there, and
+/// inserts only transactions whose idempotency key is new (spec §7). Indifferent
+/// to how a file arrived (scraper or hand-drop); an empty source is normal, not
+/// an error (spec §7.3). Idempotent: a re-run only adds rows it hasn't seen.
 /// </summary>
-public sealed class RawFeedIngestor
+public sealed class IngestRawFeeds
 {
     private readonly SourceRegistry _registry;
-    private readonly ITransactionRepository _transactions;
+    private readonly IRawFeedFiles _files;
     private readonly IReadOnlyList<IRawFeedParser> _parsers;
+    private readonly ITransactionRepository _transactions;
     private readonly InstallmentPolicy _installmentPolicy;
 
-    public RawFeedIngestor(
+    public IngestRawFeeds(
         SourceRegistry registry,
-        ITransactionRepository transactions,
+        IRawFeedFiles files,
         IEnumerable<IRawFeedParser> parsers,
+        ITransactionRepository transactions,
         InstallmentPolicy? installmentPolicy = null)
     {
         _registry = registry;
-        _transactions = transactions;
+        _files = files;
         _parsers = parsers.ToList();
+        _transactions = transactions;
         _installmentPolicy = installmentPolicy ?? new InstallmentPolicy();
     }
 
-    public IngestionResult Ingest(string rawFeedRoot)
+    public IngestionResult Execute()
     {
-        int files = 0, inserted = 0, skipped = 0, droppedInstallments = 0;
+        int filesProcessed = 0, inserted = 0, skipped = 0, droppedInstallments = 0;
         var messages = new List<string>();
 
         // Every registered source, dormant included — a dormant source's back
         // catalogue is still part of the baseline (spec §6).
         foreach (var source in _registry.SourcesForBaselineImport())
         {
-            var folder = Path.Combine(rawFeedRoot, source.Id);
-            if (!Directory.Exists(folder))
-            {
-                messages.Add($"source '{source.Id}': folder missing, no files (expected if dormant)");
-                continue;
-            }
-
-            var feedFiles = Directory
-                .EnumerateFiles(folder)
-                .Where(f => !Path.GetFileName(f).StartsWith('.'))
-                .OrderBy(f => f, StringComparer.Ordinal)
-                .ToList();
-
+            var feedFiles = _files.List(source.Id);
             if (feedFiles.Count == 0)
             {
                 messages.Add($"source '{source.Id}': no files (expected if dormant or not yet synced)");
@@ -65,17 +58,15 @@ public sealed class RawFeedIngestor
 
             foreach (var file in feedFiles)
             {
-                var fileName = Path.GetFileName(file);
-                var parser = _parsers.FirstOrDefault(p => p.CanParse(fileName));
+                var parser = _parsers.FirstOrDefault(p => p.CanParse(file.Name));
                 if (parser is null)
                 {
-                    messages.Add($"source '{source.Id}': no parser for '{fileName}', skipped");
+                    messages.Add($"source '{source.Id}': no parser for '{file.Name}', skipped");
                     continue;
                 }
 
-                files++;
-                var parsed = parser.Parse(file, source.Id);
-                var (kept, dropped) = _installmentPolicy.Filter(parsed);
+                filesProcessed++;
+                var (kept, dropped) = _installmentPolicy.Filter(parser.Parse(file.Path, source.Id));
                 droppedInstallments += dropped;
 
                 foreach (var record in kept)
@@ -95,6 +86,6 @@ public sealed class RawFeedIngestor
             }
         }
 
-        return new IngestionResult(files, inserted, skipped, droppedInstallments, messages);
+        return new IngestionResult(filesProcessed, inserted, skipped, droppedInstallments, messages);
     }
 }

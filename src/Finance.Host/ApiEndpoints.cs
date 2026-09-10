@@ -1,6 +1,6 @@
 using Finance.Application.Categorization;
+using Finance.Application.Ingestion;
 using Finance.Application.Reporting;
-using Finance.Domain.Ingestion;
 using Finance.Domain.Persistence;
 using Finance.Domain.Reporting;
 
@@ -84,8 +84,7 @@ public static class ApiEndpoints
         // --- ingestion trigger (Phase 1) -----------------------------------
         // Reads every Raw Data Feed/<source>/ folder and inserts new transactions.
         // Idempotent: re-running only adds rows whose key isn't already present.
-        app.MapPost("/api/ingest", (RawFeedIngestor ingestor, RawFeedPath feed) =>
-            Results.Ok(ingestor.Ingest(feed.Path)));
+        app.MapPost("/api/ingest", (IngestRawFeeds ingest) => Results.Ok(ingest.Execute()));
 
         // --- review-loop writes (Phases 2–3) --------------------------------
         app.MapPost("/api/transactions/{id}/category", (
@@ -134,6 +133,3 @@ public sealed record AssignBucketRequest(string? BucketId);
 
 /// <summary>Tiny wrapper so <c>/api/health</c> can report the resolved database path.</summary>
 public sealed record SqliteDatabaseInfo(string Path);
-
-/// <summary>The resolved <c>Raw Data Feed</c> root the ingestion endpoint reads from.</summary>
-public sealed record RawFeedPath(string Path);

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Finance.Application.Categorization;
+using Finance.Application.Ingestion;
 using Finance.Domain;
 using Finance.Domain.Categorization;
 using Finance.Domain.Ingestion;
@@ -28,10 +29,11 @@ public class ConfirmCategoryTests : IDisposable
           { "date": "2025-02-09", "amount": -50.00,  "merchantRaw": "שופרסל אונליין" }
         ]
         """);
-        new RawFeedIngestor(
+        new IngestRawFeeds(
             new SourceRegistry(new SourceRepository(_t.Db)),
-            new TransactionRepository(_t.Db),
-            new IRawFeedParser[] { new ScraperJsonParser() }).Ingest(_feedRoot);
+            new PhysicalRawFeedFiles(_feedRoot),
+            new IRawFeedParser[] { new ScraperJsonParser() },
+            new TransactionRepository(_t.Db)).Execute();
     }
 
     public void Dispose()
