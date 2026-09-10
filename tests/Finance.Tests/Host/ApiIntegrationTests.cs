@@ -3,7 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Finance.Data;
+using Finance.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 

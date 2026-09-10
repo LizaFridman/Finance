@@ -5,8 +5,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Finance.Core\Finance.Core.csproj" />
-    <ProjectReference Include="..\Finance.Data\Finance.Data.csproj" />
+    <ProjectReference Include="..\Finance.Domain\Finance.Domain.csproj" />
+    <ProjectReference Include="..\Finance.Infrastructure\Finance.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,10 +1,10 @@
-using Finance.Core.Categorization;
-using Finance.Core.Ingestion;
-using Finance.Core.Persistence;
-using Finance.Core.Reporting;
-using Finance.Core.Sources;
-using Finance.Data.Queries;
-using Finance.Data.Repositories;
+using Finance.Domain.Categorization;
+using Finance.Domain.Ingestion;
+using Finance.Domain.Persistence;
+using Finance.Domain.Reporting;
+using Finance.Domain.Sources;
+using Finance.Infrastructure.Queries;
+using Finance.Infrastructure.Repositories;
 
 namespace Finance.Host;
 
@@ -117,7 +117,7 @@ public static class ApiEndpoints
     }
 
     private static Grain Grain(this HttpRequest req) =>
-        Enum.TryParse<Grain>(req.Query["grain"], ignoreCase: true, out var g) ? g : Core.Reporting.Grain.Month;
+        Enum.TryParse<Grain>(req.Query["grain"], ignoreCase: true, out var g) ? g : Finance.Domain.Reporting.Grain.Month;
 
     private static SeriesFilter Filter(this HttpRequest req) => new()
     {

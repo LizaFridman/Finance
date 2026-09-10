@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The inner ring: entities, value objects, domain services, ports.
+       No project references, no infrastructure packages. -->
+
+</Project>

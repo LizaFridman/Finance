@@ -1,6 +1,6 @@
 using System;
-using Finance.Core;
-using Finance.Data;
+using Finance.Domain;
+using Finance.Infrastructure;
 
 namespace Finance.Tests;
 

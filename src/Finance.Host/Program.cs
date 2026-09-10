@@ -1,11 +1,11 @@
 using System.Text.Json.Serialization;
-using Finance.Core.Categorization;
-using Finance.Core.Ingestion;
-using Finance.Core.Persistence;
-using Finance.Core.Sources;
-using Finance.Data;
-using Finance.Data.Queries;
-using Finance.Data.Repositories;
+using Finance.Domain.Categorization;
+using Finance.Domain.Ingestion;
+using Finance.Domain.Persistence;
+using Finance.Domain.Sources;
+using Finance.Infrastructure;
+using Finance.Infrastructure.Queries;
+using Finance.Infrastructure.Repositories;
 using Finance.Host;
 
 var builder = WebApplication.CreateBuilder(args);
