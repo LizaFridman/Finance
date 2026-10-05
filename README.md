@@ -8,10 +8,11 @@ and architecture: [`financial-tracker-implementation-plan-restructured.md`](fina
 
 ```
 src/
-  Finance.Core/     domain model, source registry, ingestion pipeline,
-                    categorization Layer 1, idempotency, installments,
-                    ICredentialStore (Windows Credential Manager + .env impls),
-                    time-series reporting model + reporting calendar
+  Finance.Core/     domain model, source registry, ingestion pipeline (scraper
+                    JSON, Cal/Max xlsx, utility bill PDFs), categorization
+                    Layer 1, idempotency, installments, ICredentialStore
+                    (Windows Credential Manager + .env impls), time-series
+                    reporting model + reporting calendar
   Finance.Data/     SQLite persistence (Microsoft.Data.Sqlite), schema.sql
                     bootstrap + WAL, repositories, TimeSeriesQueries
   Finance.Export/   on-demand xlsx/CSV export (ClosedXML), live header mapping
@@ -66,16 +67,20 @@ January) — nothing about the year boundary is hardcoded.
 
 ## Ingestion
 
-Drop scraper JSON (or, later, statements) into `Raw Data Feed/<source>/` and run
-the ingestor. Re-running is a no-op — every transaction has a stable idempotency
-key (`source + date + amount + merchant`, or the source's native id). Installment
-series collapse to their first installment carrying the full amount.
+Drop scraper JSON, a Cal/Max statement workbook (`.xlsx`/`.xlsm`), or a utility
+bill PDF into `Raw Data Feed/<source>/` and run the ingestor. Re-running is a
+no-op — every transaction has a stable idempotency key (`source + date + amount
++ merchant`, or the source's native id/filename). Installment series collapse to
+their first installment carrying the full amount.
 
 ## What this scaffold does NOT include
 
-- **PDF / xlsx statement parsers** — folder-drop contract + `IRawFeedParser` +
-  scraper-JSON parser only. Parsing the water/electricity/gas/vaad/Partner PDFs and
-  the Cal/Max workbooks is the next task.
+- **Real-file verification of the PDF/xlsx parsers** — `XlsxStatementParser`
+  (Cal/Max workbooks) and `UtilityBillPdfParser` (water/electricity/gas/vaad/
+  Partner bills) are implemented, but have never run against an actual
+  statement or bill (those files are confidential and gitignored). Expect to
+  add a header alias or text pattern on first real use — see
+  `docs/missing-data-report.md`.
 - **Built `scraper/` and `dashboard/`** — pending Node.js.
 - **Infrastructure** — host-machine choice, Tailscale, real credentials, real
   income/rent figures. See `docs/setup-phase0.md`.

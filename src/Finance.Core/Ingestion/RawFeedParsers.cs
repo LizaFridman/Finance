@@ -17,8 +17,9 @@ public interface IRawFeedParser
 
 /// <summary>
 /// Reads the normalized JSON array emitted by the Node scraper wrapper
-/// (<c>scraper/</c>). This is the only feed format implemented this session;
-/// PDF/xlsx parsing is deferred — see <see cref="NotImplementedRawFeedParser"/>.
+/// (<c>scraper/</c>). Cal/Max statement workbooks and utility bill PDFs are
+/// handled by <see cref="XlsxStatementParser"/> and
+/// <see cref="UtilityBillPdfParser"/> respectively.
 /// </summary>
 public sealed class ScraperJsonParser : IRawFeedParser
 {
@@ -58,22 +59,22 @@ public sealed class ScraperJsonParser : IRawFeedParser
 }
 
 /// <summary>
-/// Placeholder for the deferred statement parsers (Cal/Max xlsx, and the
-/// water/electricity/gas/vaad/Partner/Dor-Gaz PDFs — spec §5). It claims the
-/// binary formats so an accidental drop fails loudly instead of being silently
-/// skipped. Implementing these is the follow-up to this scaffold; see the plan's
-/// "deferred" list and docs/missing-data-report.md.
+/// Placeholder for the one remaining unhandled format: legacy binary <c>.xls</c>.
+/// <c>.pdf</c>/<c>.xlsx</c>/<c>.xlsm</c> now have real parsers
+/// (<see cref="UtilityBillPdfParser"/>, <see cref="XlsxStatementParser"/>) registered
+/// ahead of this one. It claims <c>.xls</c> so an accidental drop fails loudly
+/// instead of being silently skipped.
 /// </summary>
 public sealed class NotImplementedRawFeedParser : IRawFeedParser
 {
-    private static readonly string[] Extensions = { ".pdf", ".xlsx", ".xlsm", ".xls" };
+    private static readonly string[] Extensions = { ".xls" };
 
     public bool CanParse(string fileName) =>
         Extensions.Any(ext => fileName.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
 
     public IReadOnlyList<TransactionRecord> Parse(string filePath, string sourceId) =>
         throw new NotSupportedException(
-            $"No parser for '{Path.GetFileName(filePath)}' yet. Statement/PDF parsing is a " +
-            "deferred follow-up (see the plan). Drop scraper JSON here for now, or add the " +
-            "parser and register it ahead of this one.");
+            $"No parser for '{Path.GetFileName(filePath)}' yet. Legacy binary .xls isn't " +
+            "handled — re-save as .xlsx if possible, or add a parser and register it ahead " +
+            "of this one.");
 }

@@ -6,4 +6,13 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Cal/Max statement workbooks (XlsxStatementParser) -- same version as
+         Finance.Export/Finance.Tests, reused rather than a second xlsx lib. -->
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
+    <!-- Water/electricity/gas/vaad/Partner bill PDFs (UtilityBillPdfParser) --
+         pure-.NET text extraction, no native deps. -->
+    <PackageReference Include="UglyToad.PdfPig" Version="0.1.9" />
+  </ItemGroup>
+
 </Project>

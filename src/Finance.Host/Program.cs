@@ -39,10 +39,12 @@ builder.Services.AddSingleton<SourceRegistry>();
 builder.Services.AddSingleton<TimeSeriesQueries>();
 builder.Services.AddSingleton<CategorizationService>();
 
-// Ingestion pipeline (spec §14 P0.5 — "underneath" the host). Scraper-JSON is the
-// only feed format implemented; the NotImplemented parser claims binary formats
-// so an accidental drop fails loudly.
+// Ingestion pipeline (spec §14 P0.5 — "underneath" the host). Parser selection
+// is first-CanParse-wins over this list, so the NotImplemented parser (legacy
+// .xls only) must stay registered last.
 builder.Services.AddSingleton<IRawFeedParser, ScraperJsonParser>();
+builder.Services.AddSingleton<IRawFeedParser, XlsxStatementParser>();
+builder.Services.AddSingleton<IRawFeedParser, UtilityBillPdfParser>();
 builder.Services.AddSingleton<IRawFeedParser, NotImplementedRawFeedParser>();
 builder.Services.AddSingleton<InstallmentPolicy>();
 builder.Services.AddSingleton<RawFeedIngestor>();

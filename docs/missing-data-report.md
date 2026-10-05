@@ -36,7 +36,18 @@ no corresponding raw document.
 
 ## Statement/PDF parsing
 
-Deferred in this scaffold. The `Raw Data Feed/<source>/` folders and the
-`IRawFeedParser` contract exist; only the scraper-JSON parser is implemented.
-Parsing the water/electricity/gas/vaad/Partner PDFs and the Cal/Max xlsx files is
-the immediate follow-up.
+`XlsxStatementParser` (Cal/Max workbooks) and `UtilityBillPdfParser`
+(water/electricity/gas/vaad/Partner bills) are now implemented
+(`src/Finance.Core/Ingestion/`), and the five bill sources are registered in
+`schema.sql` with matching `Raw Data Feed/<source>/` folders.
+
+**Unverified against real files.** Neither parser has run against an actual
+`כאל 2025.xlsm`, `Max 2025.xlsx`, or a real water/גז/electricity/vaad/Partner
+PDF — those files are confidential and gitignored by design, so they never
+enter this repo or any session working on it. The column-header aliases
+(`XlsxStatementParser.HeaderAliases`) and bill text patterns
+(`UtilityBillPdfParser.AmountPatterns`/`DatePatterns`) were written from the
+Hebrew/English phrasing described in this file and the plan, not from real
+samples. Both parsers fail loudly (a descriptive exception naming what was
+expected vs. found) rather than guess, so the first real run should surface
+exactly which alias or pattern needs adding — expected tuning, not a bug.
