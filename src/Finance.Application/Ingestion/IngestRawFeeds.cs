@@ -17,6 +17,9 @@ public sealed record IngestionResult(
 /// inserts only transactions whose idempotency key is new (spec §7). Indifferent
 /// to how a file arrived (scraper or hand-drop); an empty source is normal, not
 /// an error (spec §7.3). Idempotent: a re-run only adds rows it hasn't seen.
+/// One file that can't be parsed (an unimplemented format, an unreadable file)
+/// is reported and skipped, not fatal to the run — the other sources' files
+/// still ingest.
 /// </summary>
 public sealed class IngestRawFeeds
 {
@@ -66,7 +69,17 @@ public sealed class IngestRawFeeds
                 }
 
                 filesProcessed++;
-                var parsed = parser.Parse(file.Path, source.Id);
+                RawFeedParseResult parsed;
+                try
+                {
+                    parsed = parser.Parse(file.Path, source.Id);
+                }
+                catch (Exception ex) when (ex is NotSupportedException or IOException)
+                {
+                    messages.Add($"source '{source.Id}': failed to parse '{file.Name}': {ex.Message}");
+                    continue;
+                }
+
                 foreach (var error in parsed.Errors)
                     messages.Add($"source '{source.Id}': {error}");
 

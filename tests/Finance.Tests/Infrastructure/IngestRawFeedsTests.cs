@@ -30,11 +30,14 @@ public class IngestRawFeedsTests : IDisposable
     private IngestRawFeeds NewIngest() => new(
         new SourceRegistry(new SourceRepository(_t.Db)),
         new PhysicalRawFeedFiles(_feedRoot),
-        new IRawFeedParser[] { new ScraperJsonParser() },
+        new IRawFeedParser[] { new ScraperJsonParser(), new NotImplementedRawFeedParser() },
         new TransactionRepository(_t.Db));
 
     private void DropJson(string source, string fileName, string json)
         => File.WriteAllText(Path.Combine(_feedRoot, source, fileName), json);
+
+    private void DropFile(string source, string fileName, string contents)
+        => File.WriteAllText(Path.Combine(_feedRoot, source, fileName), contents);
 
     private const string TwoRows = """
     [
@@ -108,6 +111,18 @@ public class IngestRawFeedsTests : IDisposable
         NewIngest().Execute();
 
         Assert.True(new TransactionRepository(_t.Db).Exists("native:leumi:ABC123"));
+    }
+
+    [Fact]
+    public void An_unparseable_file_in_one_source_does_not_abort_other_sources()
+    {
+        DropJson("leumi", "2025-02.json", TwoRows);
+        DropFile("cal", "statement.pdf", "%PDF-1.4 not a real pdf");
+
+        var result = NewIngest().Execute();
+
+        Assert.Equal(2, result.Inserted);
+        Assert.Contains(result.Messages, m => m.Contains("cal") && m.Contains("failed to parse"));
     }
 
     [Fact]

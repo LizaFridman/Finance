@@ -59,6 +59,8 @@ builder.Services.AddSingleton<ITimeSeriesReporting, TimeSeriesReporting>();
 // only feed format implemented; the NotImplemented parser claims binary formats
 // so an accidental drop fails loudly.
 builder.Services.AddSingleton<IRawFeedParser, ScraperJsonParser>();
+builder.Services.AddSingleton<IRawFeedParser, LeumiHtmlXlsParser>();
+builder.Services.AddSingleton<IRawFeedParser, MaxXlsxParser>();
 builder.Services.AddSingleton<IRawFeedParser, NotImplementedRawFeedParser>();
 builder.Services.AddSingleton<InstallmentPolicy>();
 builder.Services.AddSingleton<IRawFeedFiles>(_ => new PhysicalRawFeedFiles(rawFeedPath));
