@@ -1,18 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
+  <!--
+    Deliberately standalone: export is output-only, never touches the database,
+    and defines its own row shape (spec §9). No project references.
+  -->
   <ItemGroup>
-    <ProjectReference Include="..\Finance.Core\Finance.Core.csproj" />
-    <ProjectReference Include="..\Finance.Data\Finance.Data.csproj" />
+    <PackageReference Include="ClosedXML" />
   </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="ClosedXML" Version="0.105.1" />
-  </ItemGroup>
-
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
 
 </Project>

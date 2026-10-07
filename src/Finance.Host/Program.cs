@@ -1,61 +1,77 @@
 using System.Text.Json.Serialization;
-using Finance.Core.Categorization;
-using Finance.Core.Ingestion;
-using Finance.Core.Persistence;
-using Finance.Core.Sources;
-using Finance.Data;
-using Finance.Data.Queries;
-using Finance.Data.Repositories;
+using Finance.Application.Categorization;
+using Finance.Application.Ingestion;
+using Finance.Application.Reporting;
+using Finance.Domain.Categorization;
+using Finance.Domain.Ingestion;
+using Finance.Domain.Persistence;
+using Finance.Domain.Reporting;
+using Finance.Domain.Sources;
+using Finance.Infrastructure;
+using Finance.Infrastructure.Ingestion;
+using Finance.Infrastructure.Reporting;
+using Finance.Infrastructure.Repositories;
 using Finance.Host;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // --- configuration -------------------------------------------------------------
-// The database path is resolved relative to the content root unless absolute.
-var dbPath = builder.Configuration["Finance:DatabasePath"] ?? "finance.db";
-if (!Path.IsPathRooted(dbPath))
-    dbPath = Path.Combine(builder.Environment.ContentRootPath, dbPath);
+builder.Services.AddOptions<FinanceOptions>()
+    .Bind(builder.Configuration.GetSection(FinanceOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
-var dashboardOrigins = builder.Configuration
-    .GetSection("Finance:DashboardOrigins").Get<string[]>() ?? [];
+var options = builder.Configuration.GetSection(FinanceOptions.SectionName).Get<FinanceOptions>()
+              ?? new FinanceOptions();
+
+// Relative paths in config are resolved against the content root.
+string ResolvePath(string configured) => Path.IsPathRooted(configured)
+    ? configured
+    : Path.Combine(builder.Environment.ContentRootPath, configured);
+
+var dbPath = ResolvePath(options.DatabasePath);
+var rawFeedPath = ResolvePath(options.RawDataFeedPath);
+var dashboardOrigins = options.DashboardOrigins;
 
 // --- services ----------------------------------------------------------------
 // Repositories open a short-lived connection per call, so singletons are fine.
-builder.Services.AddSingleton(new SqliteDatabase(
-    new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder
-    {
-        DataSource = dbPath,
-        ForeignKeys = true,
-    }.ConnectionString));
-builder.Services.AddSingleton(new SqliteDatabaseInfo(dbPath));
+builder.Services.AddSingleton(SqliteDatabase.ForFile(dbPath));
 
 builder.Services.AddSingleton<ConfigStore>();
+builder.Services.AddSingleton<IReportingConfig>(sp => sp.GetRequiredService<ConfigStore>());
+builder.Services.AddSingleton<IUnitOfWork, SqliteUnitOfWork>();
 builder.Services.AddSingleton<IBucketRepository, BucketRepository>();
 builder.Services.AddSingleton<ICategoryRepository, CategoryRepository>();
 builder.Services.AddSingleton<ISourceRepository, SourceRepository>();
 builder.Services.AddSingleton<ITransactionRepository, TransactionRepository>();
 builder.Services.AddSingleton<IMerchantDictionary, MerchantDictionary>();
 builder.Services.AddSingleton<SourceRegistry>();
-builder.Services.AddSingleton<TimeSeriesQueries>();
-builder.Services.AddSingleton<CategorizationService>();
+builder.Services.AddSingleton<ConfirmCategory>();
+builder.Services.AddSingleton<RunCategorizationBacklog>();
+
+// Time-series reporting: SQL row-reader (infra) + pure calculator (domain),
+// composed in the application ring.
+builder.Services.AddSingleton<ITransactionRowReader, TransactionRowReader>();
+builder.Services.AddSingleton<TimeSeriesCalculator>();
+builder.Services.AddSingleton<ITimeSeriesReporting, TimeSeriesReporting>();
 
 // Ingestion pipeline (spec §14 P0.5 — "underneath" the host). Parser selection
-// is first-CanParse-wins over this list, so the NotImplemented parser (legacy
-// .xls only) must stay registered last.
+// is first-CanParse-wins over this list, so the NotImplemented parser (.xlsm
+// only) must stay registered last.
 builder.Services.AddSingleton<IRawFeedParser, ScraperJsonParser>();
-builder.Services.AddSingleton<IRawFeedParser, XlsxStatementParser>();
+builder.Services.AddSingleton<IRawFeedParser, LeumiHtmlXlsParser>();
+builder.Services.AddSingleton<IRawFeedParser, MaxXlsxParser>();
 builder.Services.AddSingleton<IRawFeedParser, UtilityBillPdfParser>();
 builder.Services.AddSingleton<IRawFeedParser, NotImplementedRawFeedParser>();
 builder.Services.AddSingleton<InstallmentPolicy>();
-builder.Services.AddSingleton<RawFeedIngestor>();
-
-var rawFeedPath = builder.Configuration["Finance:RawDataFeedPath"] ?? "Raw Data Feed";
-if (!Path.IsPathRooted(rawFeedPath))
-    rawFeedPath = Path.Combine(builder.Environment.ContentRootPath, rawFeedPath);
-builder.Services.AddSingleton(new RawFeedPath(rawFeedPath));
+builder.Services.AddSingleton<IRawFeedFiles>(_ => new PhysicalRawFeedFiles(rawFeedPath));
+builder.Services.AddSingleton<IngestRawFeeds>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.SerializerOptions.Converters.Add(new MoneyJsonConverter());
+});
 
 builder.Services.AddCors(options => options.AddPolicy("dashboard", policy =>
 {
@@ -67,9 +83,14 @@ builder.Services.AddCors(options => options.AddPolicy("dashboard", policy =>
         policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
 }));
 
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<DomainExceptionHandler>();
+
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 // Create/upgrade the schema on start-up; idempotent (spec §4.3).
 app.Services.GetRequiredService<SqliteDatabase>().Bootstrap();

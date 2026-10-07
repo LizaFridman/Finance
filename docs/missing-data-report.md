@@ -36,18 +36,27 @@ no corresponding raw document.
 
 ## Statement/PDF parsing
 
-`XlsxStatementParser` (Cal/Max workbooks) and `UtilityBillPdfParser`
-(water/electricity/gas/vaad/Partner bills) are now implemented
-(`src/Finance.Core/Ingestion/`), and the five bill sources are registered in
-`schema.sql` with matching `Raw Data Feed/<source>/` folders.
+Parsers live in `src/Finance.Infrastructure/Ingestion/`:
 
-**Unverified against real files.** Neither parser has run against an actual
-`כאל 2025.xlsm`, `Max 2025.xlsx`, or a real water/גז/electricity/vaad/Partner
-PDF — those files are confidential and gitignored by design, so they never
-enter this repo or any session working on it. The column-header aliases
-(`XlsxStatementParser.HeaderAliases`) and bill text patterns
-(`UtilityBillPdfParser.AmountPatterns`/`DatePatterns`) were written from the
-Hebrew/English phrasing described in this file and the plan, not from real
-samples. Both parsers fail loudly (a descriptive exception naming what was
-expected vs. found) rather than guess, so the first real run should surface
-exactly which alias or pattern needs adding — expected tuning, not a bug.
+| Format | Parser | Status |
+|---|---|---|
+| scraper `.json` | `ScraperJsonParser` | implemented |
+| Leumi export (`.xls`, HTML) | `LeumiHtmlXlsParser` | implemented |
+| Max statement (`.xlsx`) | `MaxXlsxParser` | implemented |
+| utility-bill `.pdf` (water/electricity/gas/vaad/Partner) | `UtilityBillPdfParser` | implemented, **unverified on real bills** |
+| Cal workbook (`.xlsm`) / Cal statement PDFs | none | **not implemented** — `.xlsm` fails loudly via `NotImplementedRawFeedParser` |
+
+The five bill sources are registered in `schema.sql` with matching
+`Raw Data Feed/<source>/` folders.
+
+**`UtilityBillPdfParser` is unverified.** Real bills are confidential and
+gitignored, so its amount/date patterns were written from the expected
+Hebrew/English wording (including mirrored variants for PDFs whose Hebrew text is
+extracted in visual order), not from real samples. It never guesses: a bill with
+no labeled amount or due date yields no record and an error line in the ingestion
+result. The first real run will show which pattern needs adding — expected
+tuning, not a bug. The billing-period start/end dates are deliberately not used
+as a fallback date.
+
+`כאל 2025.xlsm` and the Cal statement PDFs still need a parser once a real sample
+is available to build against.

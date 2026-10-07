@@ -1,0 +1,17 @@
+<Project>
+
+  <!--
+    Shared build settings for every .NET project in the solution. Individual
+    csproj files carry only what is unique to them (SDK, references, embedded
+    resources). Package versions live in Directory.Packages.props.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+</Project>
