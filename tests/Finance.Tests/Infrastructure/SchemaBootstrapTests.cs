@@ -58,7 +58,7 @@ public class SchemaBootstrapTests
         t.Db.Bootstrap();
 
         Assert.Equal(3, Scalar(t.Db, "SELECT COUNT(*) FROM buckets"));
-        Assert.Equal(3, Scalar(t.Db, "SELECT COUNT(*) FROM sources"));
+        Assert.Equal(8, Scalar(t.Db, "SELECT COUNT(*) FROM sources"));
         Assert.Equal(1, Scalar(t.Db, "SELECT COUNT(*) FROM config WHERE key = 'year_start_month'"));
     }
 
@@ -75,6 +75,8 @@ public class SchemaBootstrapTests
         Assert.Equal("active", sources["cal"]);
         Assert.Equal("active", sources["leumi"]);
         Assert.Equal("dormant", sources["max"]);
+        foreach (var bill in new[] { "water", "electricity", "gas", "vaad", "partner" })
+            Assert.Equal("active", sources[bill]);
     }
 
     [Fact]

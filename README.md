@@ -73,7 +73,8 @@ January) — nothing about the year boundary is hardcoded.
 ## Ingestion
 
 Drop scraper JSON (`.json`), a Leumi export (`.xls`, actually HTML), a Max
-statement (`.xlsx`), or a utility-bill PDF (`.pdf`) into `Raw Data Feed/<source>/`
+statement (`.xlsx`), a Cal monthly statement PDF (into `Raw Data Feed/cal/`), or a
+utility-bill PDF (into the matching bill source folder) into `Raw Data Feed/<source>/`
 and run the ingestor. Re-running is a no-op — every transaction has a stable
 idempotency key (`source + date + amount + merchant`, or the source's native
 id/filename). Installment series collapse to their first installment carrying the
@@ -82,9 +83,13 @@ result and skipped, not fatal to the run.
 
 ## What is still missing
 
-- **Cal statement parsing** — Cal's `.xlsm` workbook and statement PDFs have no
-  parser yet (`.xlsm` is claimed by `NotImplementedRawFeedParser` so a drop fails
-  loudly).
+- **Cal's `.xlsm` workbook** — no parser yet (`.xlsm` is claimed by
+  `NotImplementedRawFeedParser` so a drop fails loudly). Cal *statement PDFs* are
+  handled by `CalStatementPdfParser`.
+- **Wider verification of `CalStatementPdfParser`** — its column positions were
+  measured from a single monthly statement; its section totals reconcile against
+  the statement's own, which will flag a different layout loudly. Other months are
+  unverified.
 - **Real-bill verification of `UtilityBillPdfParser`** — water/electricity/gas/
   vaad/Partner bills are confidential and gitignored, so its amount/date patterns
   are written from the expected wording and have never run on an actual bill.

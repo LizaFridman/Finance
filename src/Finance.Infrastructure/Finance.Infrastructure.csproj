@@ -15,4 +15,8 @@
     <EmbeddedResource Include="schema.sql" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Finance.Tests" />
+  </ItemGroup>
+
 </Project>
