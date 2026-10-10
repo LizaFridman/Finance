@@ -1,0 +1,6 @@
+interface:
+  display_name: "Finance Change Registry"
+  short_description: "Track finance app intent, changes, merges, and versions"
+  default_prompt: "Use $finance-change-registry to find the matching active intent, update its evidence and next action, or apply the next eligible entry."
+policy:
+  allow_implicit_invocation: true
