@@ -13,6 +13,8 @@ Updated: 2026-10-10 (Asia/Jerusalem).
 
 Shared registry and Claude Code project skill were created previously. This session adds START-HERE, DECISIONS, IMPLEMENTATION-PLAN, this handoff, and routing from both tools' project instructions. The existing active MVP entry is extended, not duplicated.
 
+Follow-up: the root README now distinguishes unverified legacy code from the planned replacement and routes new sessions to this guide. Legacy build/run commands are labelled as unverified reference commands. Application work remains at M00.
+
 ## Known gaps and independent work
 
 - Replacement directory/stack and financial policies are proposed, not approved.
