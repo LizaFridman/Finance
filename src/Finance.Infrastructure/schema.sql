@@ -101,9 +101,14 @@ INSERT OR IGNORE INTO buckets (id, label) VALUES
   ('shared',         'Shared');
 
 INSERT OR IGNORE INTO sources (id, status) VALUES
-  ('leumi', 'active'),
-  ('cal',   'active'),
-  ('max',   'dormant');   -- registered dormant; 2025 history still enters the baseline (spec §6)
+  ('leumi',       'active'),
+  ('cal',         'active'),
+  ('max',         'dormant'),   -- registered dormant; 2025 history still enters the baseline (spec §6)
+  ('water',       'active'),
+  ('electricity', 'active'),
+  ('gas',         'active'),
+  ('vaad',        'active'),
+  ('partner',     'active');
 
 -- Year boundary for yearly rollups and the cumulative-within-year reset.
 -- Configurable (spec §3): default 1 = January. Change with a single UPDATE.

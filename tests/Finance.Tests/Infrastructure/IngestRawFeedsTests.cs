@@ -117,7 +117,7 @@ public class IngestRawFeedsTests : IDisposable
     public void An_unparseable_file_in_one_source_does_not_abort_other_sources()
     {
         DropJson("leumi", "2025-02.json", TwoRows);
-        DropFile("cal", "statement.pdf", "%PDF-1.4 not a real pdf");
+        DropFile("cal", "statement.xlsm", "not a real workbook"); // .xlsm: the format with no parser yet
 
         var result = NewIngest().Execute();
 

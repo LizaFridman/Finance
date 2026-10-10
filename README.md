@@ -8,12 +8,16 @@ and architecture: [`financial-tracker-implementation-plan-restructured.md`](fina
 
 ```
 src/
-  Finance.Core/     domain model, source registry, ingestion pipeline,
-                    categorization Layer 1, idempotency, installments,
-                    ICredentialStore (Windows Credential Manager + .env impls),
-                    time-series reporting model + reporting calendar
-  Finance.Data/     SQLite persistence (Microsoft.Data.Sqlite), schema.sql
-                    bootstrap + WAL, repositories, TimeSeriesQueries
+  Finance.Domain/   pure inner ring: Money, entities, ports (repositories,
+                    IRawFeedParser, ICredentialStore), source registry,
+                    idempotency, installments, Layer-1 matching, time-series
+                    calculator + reporting calendar
+  Finance.Application/  use cases: IngestRawFeeds, ConfirmCategory,
+                    RunCategorizationBacklog, TimeSeriesReporting
+  Finance.Infrastructure/  SQLite (schema.sql, WAL, repositories, unit of work),
+                    raw-feed parsers (scraper JSON, Leumi HTML-.xls, Max .xlsx,
+                    utility-bill PDFs), credential stores (Windows Credential
+                    Manager + .env)
   Finance.Export/   on-demand xlsx/CSV export (ClosedXML), live header mapping
   Finance.Host/     ASP.NET Core API — live time-series endpoints + review-loop
                     writes; Kestrel bound to 0.0.0.0 for tailnet access
@@ -27,8 +31,10 @@ docs/               Phase 0 setup runbook, missing-data report template
 ## Prerequisites
 
 - **.NET 9 SDK** (installed).
-- **Node.js LTS** — required only for `scraper/` and `dashboard/`. **Not installed
-  yet**; those two are written but unbuilt (see their READMEs).
+- **Node.js LTS** — required only for `scraper/` and `dashboard/`. `npm install`
+  works for both and `dashboard/` typechecks clean; `scraper/` currently fails
+  `npm run typecheck` (credential typing at `src/index.ts:81`) — fix before the
+  first scrape.
 
 ## Build & test
 
@@ -66,17 +72,30 @@ January) — nothing about the year boundary is hardcoded.
 
 ## Ingestion
 
-Drop scraper JSON (or, later, statements) into `Raw Data Feed/<source>/` and run
-the ingestor. Re-running is a no-op — every transaction has a stable idempotency
-key (`source + date + amount + merchant`, or the source's native id). Installment
-series collapse to their first installment carrying the full amount.
+Drop scraper JSON (`.json`), a Leumi export (`.xls`, actually HTML), a Max
+statement (`.xlsx`), a Cal monthly statement PDF (into `Raw Data Feed/cal/`), or a
+utility-bill PDF (into the matching bill source folder) into `Raw Data Feed/<source>/`
+and run the ingestor. Re-running is a no-op — every transaction has a stable
+idempotency key (`source + date + amount + merchant`, or the source's native
+id/filename). Installment series collapse to their first installment carrying the
+full amount. A file or row that can't be parsed is reported in the ingestion
+result and skipped, not fatal to the run.
 
-## What this scaffold does NOT include
+## What is still missing
 
-- **PDF / xlsx statement parsers** — folder-drop contract + `IRawFeedParser` +
-  scraper-JSON parser only. Parsing the water/electricity/gas/vaad/Partner PDFs and
-  the Cal/Max workbooks is the next task.
-- **Built `scraper/` and `dashboard/`** — pending Node.js.
+- **Cal's `.xlsm` workbook** — no parser yet (`.xlsm` is claimed by
+  `NotImplementedRawFeedParser` so a drop fails loudly). Cal *statement PDFs* are
+  handled by `CalStatementPdfParser`.
+- **Wider verification of `CalStatementPdfParser`** — its column positions were
+  measured from a single monthly statement; its section totals reconcile against
+  the statement's own, which will flag a different layout loudly. Other months are
+  unverified.
+- **Real-bill verification of `UtilityBillPdfParser`** — water/electricity/gas/
+  vaad/Partner bills are confidential and gitignored, so its amount/date patterns
+  are written from the expected wording and have never run on an actual bill.
+  Expect to add a pattern on first real use — see `docs/missing-data-report.md`.
+- **A passing scraper build** — `scraper/` typecheck currently fails (see
+  Prerequisites).
 - **Infrastructure** — host-machine choice, Tailscale, real credentials, real
   income/rent figures. See `docs/setup-phase0.md`.
 - **The manual passes themselves** — status-tagging, categorization decisions,

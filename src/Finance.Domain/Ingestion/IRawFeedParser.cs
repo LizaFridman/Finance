@@ -26,22 +26,23 @@ public interface IRawFeedParser
 }
 
 /// <summary>
-/// Placeholder for the deferred statement parsers (Cal/Max xlsx, and the
-/// water/electricity/gas/vaad/Partner/Dor-Gaz PDFs — spec §5). It claims the
-/// binary formats so an accidental drop fails loudly instead of being silently
-/// skipped. Implementing these is the follow-up to this scaffold; see the plan's
-/// "deferred" list and docs/missing-data-report.md.
+/// Placeholder for the one format with no parser yet: macro-enabled <c>.xlsm</c>
+/// (Cal's <c>כאל 2025.xlsm</c> workbook — its layout is unverified, spec §5).
+/// <c>.json</c>, <c>.xls</c> (Leumi), <c>.xlsx</c> (Max) and <c>.pdf</c> (utility
+/// bills) all have real parsers registered ahead of this one. It claims
+/// <c>.xlsm</c> so an accidental drop fails loudly instead of being silently
+/// skipped; see docs/missing-data-report.md.
 /// </summary>
 public sealed class NotImplementedRawFeedParser : IRawFeedParser
 {
-    private static readonly string[] Extensions = { ".pdf", ".xlsx", ".xlsm", ".xls" };
+    private static readonly string[] Extensions = { ".xlsm" };
 
     public bool CanParse(string fileName) =>
         Extensions.Any(ext => fileName.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
 
     public RawFeedParseResult Parse(string filePath, string sourceId) =>
         throw new NotSupportedException(
-            $"No parser for '{Path.GetFileName(filePath)}' yet. Statement/PDF parsing is a " +
-            "deferred follow-up (see the plan). Drop scraper JSON here for now, or add the " +
-            "parser and register it ahead of this one.");
+            $"No parser for '{Path.GetFileName(filePath)}' yet. Macro-enabled .xlsm statements " +
+            "aren't handled — re-save as .xlsx if it matches the Max layout, or add a parser " +
+            "and register it ahead of this one.");
 }

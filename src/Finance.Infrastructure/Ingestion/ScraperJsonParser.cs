@@ -8,9 +8,8 @@ namespace Finance.Infrastructure.Ingestion;
 
 /// <summary>
 /// Reads the normalized JSON array emitted by the Node scraper wrapper
-/// (<c>scraper/</c>). This is the only feed format implemented this session;
-/// PDF/xlsx parsing is deferred — see <see cref="NotImplementedRawFeedParser"/>.
-/// A row that can't be read (bad date, missing merchant, …) is reported, not
+/// (<c>scraper/</c>). Statement exports and bill PDFs have their own parsers
+/// alongside this one. A row that can't be read (bad date, missing merchant, …) is reported, not
 /// fatal — the rest of the file still ingests.
 /// </summary>
 public sealed class ScraperJsonParser : IRawFeedParser
