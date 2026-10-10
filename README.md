@@ -1,83 +1,103 @@
 # Finance
 
-Automated, source-agnostic financial tracker for a two-person household. Replaces a
-three-spreadsheet manual system, built from raw financial data only. Full rationale
-and architecture: [`financial-tracker-implementation-plan-restructured.md`](financial-tracker-implementation-plan-restructured.md).
+A personal finance project for reviewing manually uploaded statements and calculating
+shared expenses between two partners.
 
-## Layout
+**Current status:** this repository contains an **unverified legacy application**
+and a **plan for a smaller Excel-first replacement**. The replacement has not been
+implemented. The legacy code has not been removed or validated as part of the
+planning work.
 
-```
-src/
-  Finance.Core/     domain model, source registry, ingestion pipeline,
-                    categorization Layer 1, idempotency, installments,
-                    ICredentialStore (Windows Credential Manager + .env impls),
-                    time-series reporting model + reporting calendar
-  Finance.Data/     SQLite persistence (Microsoft.Data.Sqlite), schema.sql
-                    bootstrap + WAL, repositories, TimeSeriesQueries
-  Finance.Export/   on-demand xlsx/CSV export (ClosedXML), live header mapping
-  Finance.Host/     ASP.NET Core API — live time-series endpoints + review-loop
-                    writes; Kestrel bound to 0.0.0.0 for tailnet access
-tests/Finance.Tests/  xUnit — temp-file SQLite, synthetic rows
-scraper/            Node/TS wrapper around israeli-bank-scrapers (host-only)
-dashboard/          React + Recharts, fetches live from the host API
-Raw Data Feed/      drop-in folder per source (scraper output or manual downloads)
-docs/               Phase 0 setup runbook, missing-data report template
-```
+## Start here
 
-## Prerequisites
+Read [the shared development guide](docs/development/START-HERE.md) before starting
+new application work. It provides the reading order and workflow for both Codex
+and Claude Code.
 
-- **.NET 9 SDK** (installed).
-- **Node.js LTS** — required only for `scraper/` and `dashboard/`. **Not installed
-  yet**; those two are written but unbuilt (see their READMEs).
+| Document | Purpose |
+| --- | --- |
+| [Implementation plan](docs/development/IMPLEMENTATION-PLAN.md) | M00-M11 tasks, dependencies, proposed files, tests, and acceptance checks |
+| [Requirements and decisions](docs/development/DECISIONS.md) | User requirements, proposed defaults, and decisions still to resolve |
+| [Session handoff](docs/development/SESSION-HANDOFF.md) | Current progress and the next concrete action |
+| [Change registry](docs/change-registry/INDEX.md) | Reasons for changes, implementation evidence, and integration history |
+| [Registry skill](docs/skills/finance-change-registry/SKILL.md) | Shared rules for maintaining entries, applying next work, and reconciling merges |
 
-## Build & test
+## Planned replacement
 
-```
+The proposed first version focuses on:
+
+- Importing explicitly supported Hebrew/English Excel statement layouts.
+- Previewing and validating transactions before confirmation.
+- Reviewing personal/shared allocations and recording repayments.
+- Showing an explainable balance, its contributing transactions, and unresolved data.
+- Handling repeated and overlapping imports without losing legitimate purchases.
+- Saving locally with backup and restore.
+
+The proposed stack is Python, Streamlit, and SQLite in a separate
+`finance_app/` directory. **That directory and stack are planning choices, not an
+existing runnable application.** Resolve the outstanding decisions in
+[DECISIONS.md](docs/development/DECISIONS.md) before dependent implementation.
+
+PDF/OCR, automatic bank connections, extensive dashboards, and separate partner
+access are deferred proposals. No legacy database migration is currently in scope.
+
+## Existing implementation: legacy reference
+
+The existing .NET/SQLite backend, React dashboard, Node scraper, and tests remain
+in the repository as reference material. Their presence does not establish
+correctness, supported statement formats, or readiness for financial use.
+
+| Path | Existing contents |
+| --- | --- |
+| `src/` | .NET application projects |
+| `tests/Finance.Tests/` | Legacy .NET tests |
+| `dashboard/` | React dashboard |
+| `scraper/` | Node bank-scraping integration |
+| `Raw Data Feed/` | Local input location; financial files must remain outside Git |
+| [Original implementation plan](financial-tracker-implementation-plan-restructured.md) | Historical architecture and assumptions |
+| `Gemini Plan/` | Historical proposals consolidated into the current roadmap |
+
+The original plan and Gemini documents are historical references. Use the
+maintained development guide for current work; reread an original source only to
+resolve a specific gap.
+
+### Legacy development commands
+
+These commands apply to the existing .NET solution, **not the proposed replacement**.
+They are provided for deliberate investigation; they were not run or verified by
+this README update.
+
+```powershell
 dotnet build Finance.sln
 dotnet test Finance.sln
-```
-
-## Run the host
-
-```
 dotnet run --project src/Finance.Host
 ```
 
-Binds `http://0.0.0.0:5179` on purpose — the host must be reachable from every
-device on the Tailscale network (spec §0/§4.3). `GET /api/health` to check.
+Check `global.json`, project files, and component READMEs for their actual runtime
+requirements. Do not assume the required SDKs or Node dependencies are installed.
 
-Key endpoints:
+Inspect host configuration before running: the legacy setup uses
+`0.0.0.0:5179` for network access, rather than a PC-only loopback listener. The
+replacement plan calls for loopback binding.
 
-| Endpoint | Purpose |
-|---|---|
-| `GET /api/series/trend?from=&to=&grain=` | monthly (or day/year) income / expense / net |
-| `GET /api/series/cumulative` | running total, resets at the reporting-year boundary |
-| `GET /api/series/rolling12` | trailing-12-month sums |
-| `GET /api/series/yoy?years=2025,2026` | same calendar month across years + year totals |
-| `GET /api/series/by-bucket` / `by-category` | breakdown series (bucket view includes `needs_bucket_assignment`) |
-| `POST /api/transactions/{id}/category` | Layer 2 review: confirm a category, sweep the backlog |
-| `POST /api/transactions/{id}/bucket` | Phase 3: assign / clear a bucket |
+## Working across sessions and tools
 
-Query params on the series endpoints: `hidePersonal=true`, `nullBucket=exclude`,
-`bucketId=`, `categoryId=`, `sourceId=`.
+Codex reads [AGENTS.md](AGENTS.md). Claude Code reads [CLAUDE.md](CLAUDE.md) and
+can invoke the project skill:
 
-The reporting-year start month is configurable (`config.year_start_month`, default
-January) — nothing about the year boundary is hardcoded.
+```text
+/finance-change-registry
+```
 
-## Ingestion
+A continuation prompt for either tool:
 
-Drop scraper JSON (or, later, statements) into `Raw Data Feed/<source>/` and run
-the ingestor. Re-running is a no-op — every transaction has a stable idempotency
-key (`source + date + amount + merchant`, or the source's native id). Installment
-series collapse to their first installment carrying the full amount.
+> Read docs/development/START-HERE.md. Continue the next eligible task and update
+> the plan, registry, and handoff.
 
-## What this scaffold does NOT include
+Extend an existing active registry entry when it covers the same intent. Record
+code changes and verification evidence alongside the work; do not mark an
+application feature implemented merely because its plan exists.
 
-- **PDF / xlsx statement parsers** — folder-drop contract + `IRawFeedParser` +
-  scraper-JSON parser only. Parsing the water/electricity/gas/vaad/Partner PDFs and
-  the Cal/Max workbooks is the next task.
-- **Built `scraper/` and `dashboard/`** — pending Node.js.
-- **Infrastructure** — host-machine choice, Tailscale, real credentials, real
-  income/rent figures. See `docs/setup-phase0.md`.
-- **The manual passes themselves** — status-tagging, categorization decisions,
-  bucket decisions. The tools are here; the decisions are yours (spec §12).
+Preserve legacy code until its removal or migration is explicitly in scope.
+Keep real statements, extracted personal transactions, credentials, and local
+databases out of commits.
