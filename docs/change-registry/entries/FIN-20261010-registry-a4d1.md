@@ -50,6 +50,8 @@ Implementation commits, PR, target branch, merge, and application release: none 
 
 Integration preparation on 2026-10-10: branch `codex/finance-roadmap-registry`, requested target `master`. The user authorized committing/pushing these documentation changes and opening a PR. No merge or release is authorized or asserted by that request.
 
+Verified integration evidence: implementation commit `f917d99` pushed on that branch; [PR #2](https://github.com/LizaFridman/Finance/pull/2) is open against `master`. Registry status remains implemented, not merged or released.
+
 ## Next action and blockers
 
 Ready for review and integration when requested. Open a Claude Code session in this project and invoke `/finance-change-registry` to exercise its live discovery. Application implementation remains in the separate planned entry.
@@ -60,3 +62,4 @@ Ready for review and integration when requested. Open a Claude Code session in t
 - 2026-10-10: Extended this same active entry after the user requested Claude Code compatibility and a stronger coding focus. Added a project-local Claude skill, shared routing, and code-plan requirements; did not create a duplicate entry.
 - 2026-10-10: Structural checks and independent behavioral validation passed; marked implemented, with no merge or release asserted. Documented the unavailable bundled validator and the remaining live-client discovery check.
 - 2026-10-10: User requested a branch and PR targeting master with a TL;DR; prepared codex/finance-roadmap-registry for the shared skill and planning documentation.
+- 2026-10-10: Pushed f917d99 and opened PR #2 against master with a TL;DR and validation/continuation notes. Recorded actual evidence in this follow-up update.

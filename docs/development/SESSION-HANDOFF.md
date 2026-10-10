@@ -26,4 +26,6 @@ Documentation-only work. Structural validation passed for eight documentation fi
 
 ## Handoff maintenance
 
+Integration update: planning/skill commit `f917d99` is pushed; [PR #2](https://github.com/LizaFridman/Finance/pull/2) is open against master with a TL;DR. This handoff update records the actual PR after creation. No merge has occurred.
+
 Replace this snapshot at the end of each work session with: selected entry/task, completed steps, changed paths, decisions, exact tests/results/revision, remaining failures, environment/run commands, and next concrete action. Keep durable rationale and evidence in the registry history. Do not copy private statement values or passwords here.

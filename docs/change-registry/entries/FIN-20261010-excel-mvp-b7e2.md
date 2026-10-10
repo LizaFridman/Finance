@@ -48,6 +48,8 @@ Implementation commits, PR, target branch, merge, release, target app version: u
 
 Planning-document integration: branch `codex/finance-roadmap-registry`, requested PR base `master` (2026-10-10). This integrates the roadmap only; application implementation remains planned. Commit and PR evidence will be recorded when available.
 
+Planning evidence now available: commit `f917d99`, pushed on that branch; [PR #2](https://github.com/LizaFridman/Finance/pull/2), open against `master`. No app code, merge, or release is implied.
+
 ## Next action and blockers
 
 Start at M00 in the roadmap: resolve the design choices needed for the next task and inventory representative original Excel exports, preferably overlapping examples, without committing financial data. Independent design and synthetic calculator examples can proceed without real statements once relevant policies are resolved. Actual-format importer acceptance requires representative files and expected results. Read the maintained session handoff before continuing.
