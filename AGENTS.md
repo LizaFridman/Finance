@@ -1,5 +1,7 @@
 # Finance application work
 
+First read and follow `docs/rules/RULES.md`. To add rules, use `docs/skills/finance-reflect/SKILL.md`.
+
 For planning, implementation, fixes, reviews, merges, releases, and history queries for this application, read and use `docs/skills/finance-change-registry/SKILL.md` and `docs/change-registry/INDEX.md`. Extend a matching active intent before creating a new entry. Maintain the registry alongside the work; it does not grant permission for unrelated actions.
 
 For the replacement application, start with `docs/development/START-HERE.md`. Its decisions, task roadmap, and current handoff are the shared session context for Codex and Claude Code. Read the selected task and relevant decisions rather than reloading all historical Gemini files. Update task progress, registry evidence, and handoff alongside each implementation change.

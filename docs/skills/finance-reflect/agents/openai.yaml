@@ -1,0 +1,5 @@
+interface:
+  display_name: "Finance Reflect"
+  short_description: "Save conversation lessons as finance/app rules"
+policy:
+  allow_implicit_invocation: true
